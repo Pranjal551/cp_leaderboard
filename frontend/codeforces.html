@@ -29,20 +29,159 @@
         .nav-link:hover { color: #ff4d6d; }
         .main { max-width: 860px; margin: 0 auto; padding: 48px 24px; }
         .section-title { font-size: 0.7rem; letter-spacing: 0.18em; color: rgba(255,255,255,0.34); margin-bottom: 16px; }
-        .placeholder { border: 1px solid rgba(247,148,30,0.18); background: rgba(13,13,13,0.92); padding: 28px 32px; color: rgba(255,255,255,0.6); letter-spacing: 0.06em; }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            border: 1px solid rgba(247,148,30,0.18);
+            background: rgba(13,13,13,0.92);
+            padding: 18px 20px;
+        }
+
+        .summary-label {
+            font-size: 0.72rem;
+            letter-spacing: 0.16em;
+            color: #00f2ea;
+            margin-bottom: 12px;
+        }
+
+        .summary-value {
+            font-size: 2.2rem;
+            font-weight: 700;
+            line-height: 1;
+            color: #f7941e;
+        }
+
+        .summary-sub {
+            margin-top: 10px;
+            font-size: 0.72rem;
+            color: rgba(255,255,255,0.48);
+            letter-spacing: 0.08em;
+        }
+
+        .board-shell {
+            border: 1px solid rgba(247,148,30,0.18);
+            background: rgba(13,13,13,0.92);
+            padding-top: 12px;
+        }
+
+        .board-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .board-table th {
+            text-align: left;
+            padding: 10px 18px;
+            font-size: 0.58rem;
+            letter-spacing: 0.15em;
+            color: rgba(255,255,255,0.28);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .board-table td {
+            padding: 15px 18px;
+            font-size: 0.78rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .problem-name { color: rgba(255,255,255,0.88); }
+        .problem-id { color: rgba(255,255,255,0.5); }
+        .problem-rating { color: #f7941e; }
+        .problem-date { color: rgba(255,255,255,0.72); }
+
+        .empty {
+            padding: 24px 18px;
+            color: rgba(255,255,255,0.42);
+            letter-spacing: 0.08em;
+            font-size: 0.72rem;
+        }
     </style>
 </head>
 <body>
     <nav class="navbar" id="appNavbar"></nav>
     <div class="main">
         <div class="section-title">// CODEFORCES_DATA</div>
-        <div class="placeholder">Codeforces data page shell is ready.</div>
+        <div class="summary">
+            <div class="summary-card">
+                <div class="summary-label">// HANDLE</div>
+                <div class="summary-value" id="cfHandle">N/A</div>
+            </div>
+            <div class="summary-card">
+                <div class="summary-label">// SOLVED_PROBLEMS</div>
+                <div class="summary-value" id="cfSolvedCount">0</div>
+                <div class="summary-sub">stored in database</div>
+            </div>
+        </div>
+
+        <div class="board-shell">
+            <table class="board-table">
+                <thead>
+                    <tr>
+                        <th>PROBLEM</th>
+                        <th>ID</th>
+                        <th>RATING</th>
+                        <th>SOLVED AT</th>
+                    </tr>
+                </thead>
+                <tbody id="cfSolvedBody">
+                    <tr><td colspan="4" class="empty">// LOADING SOLVED PROBLEMS...</td></tr>
+                </tbody>
+            </table>
+        </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="./lib/supabase.js"></script>
     <script src="./lib/app-shell.js"></script>
     <script>
-        bootstrapAppShell("codeforces");
+        async function init() {
+            const appState = await bootstrapAppShell("codeforces");
+            if (!appState) return;
+
+            const cfAccount = (appState.accounts || []).find(account => account.platform === "codeforces");
+            const body = document.getElementById("cfSolvedBody");
+
+            if (!cfAccount) {
+                body.innerHTML = `<tr><td colspan="4" class="empty">// CODEFORCES ACCOUNT NOT LINKED</td></tr>`;
+                return;
+            }
+
+            document.getElementById("cfHandle").textContent = cfAccount.handle;
+
+            const { data: solvedProblems, error } = await supabase
+                .from("submissions")
+                .select("solved_at, problems(name, rating, external_problem_id)")
+                .eq("user_id", appState.user.id)
+                .eq("platform", "codeforces")
+                .order("solved_at", { ascending: false });
+
+            if (error || !solvedProblems) {
+                body.innerHTML = `<tr><td colspan="4" class="empty">// COULD NOT LOAD CODEFORCES DATA</td></tr>`;
+                return;
+            }
+
+            document.getElementById("cfSolvedCount").textContent = solvedProblems.length;
+
+            if (solvedProblems.length === 0) {
+                body.innerHTML = `<tr><td colspan="4" class="empty">// NO CODEFORCES PROBLEMS STORED YET</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = solvedProblems.map((entry) => `
+                <tr>
+                    <td class="problem-name">${entry.problems?.name || "-"}</td>
+                    <td class="problem-id">${entry.problems?.external_problem_id || "-"}</td>
+                    <td class="problem-rating">${entry.problems?.rating ?? "N/A"}</td>
+                    <td class="problem-date">${entry.solved_at ? new Date(entry.solved_at).toLocaleString() : "-"}</td>
+                </tr>
+            `).join("");
+        }
+
+        init();
     </script>
 </body>
 </html>
