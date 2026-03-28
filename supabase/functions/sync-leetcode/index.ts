@@ -148,10 +148,55 @@ serve(async (req) => {
       processed++;
     }
 
+    const { data: userSubmissions, error: submissionsError } = await supabase
+      .from("submissions")
+      .select("problem_id, problems(difficulty)")
+      .eq("user_id", user_id)
+      .eq("platform", "leetcode");
+
+    if (submissionsError) throw submissionsError;
+
+    let leetcodePoints = 0;
+
+    userSubmissions?.forEach((sub: any) => {
+      const difficulty = sub.problems?.difficulty;
+
+      if (difficulty === "Easy") leetcodePoints += 100;
+      else if (difficulty === "Medium") leetcodePoints += 200;
+      else if (difficulty === "Hard") leetcodePoints += 400;
+    });
+
+    const { data: existingScore, error: scoreError } = await supabase
+      .from("user_scores")
+      .select("codeforces_points")
+      .eq("user_id", user_id)
+      .maybeSingle();
+
+    if (scoreError) throw scoreError;
+
+    const codeforcesPoints = existingScore?.codeforces_points || 0;
+    const finalTotal = codeforcesPoints + leetcodePoints;
+
+    const { error: upsertScoreError } = await supabase
+      .from("user_scores")
+      .upsert(
+        {
+          user_id,
+          codeforces_points: codeforcesPoints,
+          leetcode_points: leetcodePoints,
+          total_points: finalTotal,
+          last_updated: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
+
+    if (upsertScoreError) throw upsertScoreError;
+
     return new Response(
       JSON.stringify({
         synced: true,
-        problemsProcessed: processed
+        problemsProcessed: processed,
+        leetcodePoints
       }),
       { headers: { "Content-Type": "application/json" } }
     );

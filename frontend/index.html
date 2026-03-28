@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CP Leaderboard — Track. Analyze. Compete.</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --cyan: #00f2ea;
+            --orange: #f7941e;
+            --purple: #a855f7;
+            --bg: #050505;
+            --surface: #0d0d0d;
+            --border: rgba(0,242,234,0.18);
+        }
+
+        body {
+            background: var(--bg);
+            color: white;
+            font-family: "Fira Code", monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── NAVBAR ─────────────────────────────────────────── */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 48px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-logo {
+            color: var(--cyan);
+            font-size: 0.88rem;
+            letter-spacing: 0.12em;
+        }
+
+        #authArea button#loginBtn {
+            background: none;
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            padding: 8px 22px;
+            font-family: "Fira Code", monospace;
+            font-size: 0.78rem;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        #authArea button#loginBtn:hover {
+            background: var(--cyan);
+            color: var(--bg);
+        }
+
+        /* ── HERO ────────────────────────────────────────────── */
+        .hero {
+            text-align: center;
+            padding: 72px 20px 40px;
+        }
+
+        .hero-title {
+            font-size: clamp(2.4rem, 8vw, 5.2rem);
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            line-height: 1.05;
+            white-space: nowrap;
+            position: relative;
+            display: inline-block;
+        }
+
+        .hero-title .accent { color: var(--cyan); }
+
+        /* ── GLITCH ──────────────────────────────────────────── */
+        .glitch {
+            position: relative;
+            display: inline-block;
+        }
+
+        .glitch::before,
+        .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            white-space: nowrap;
+            overflow: hidden;
+        }
+
+        .glitch::before {
+            color: #ff00ea;
+            left: 2px;
+            clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%);
+            opacity: 0;
+        }
+
+        .glitch::after {
+            color: #00f2ea;
+            left: -2px;
+            clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%);
+            opacity: 0;
+        }
+
+        .glitch.glitch-active::before {
+            animation: glitch-top 0.3s steps(2) forwards;
+        }
+
+        .glitch.glitch-active::after {
+            animation: glitch-bot 0.3s steps(2) forwards;
+        }
+
+        @keyframes glitch-top {
+            0%   { opacity: 1; transform: translateX(-3px) skewX(-2deg); clip-path: polygon(0 15%, 100% 15%, 100% 35%, 0 35%); }
+            33%  { transform: translateX(3px)  skewX(1deg);  clip-path: polygon(0 45%, 100% 45%, 100% 55%, 0 55%); }
+            66%  { transform: translateX(-2px) skewX(-1deg); clip-path: polygon(0 5%,  100% 5%,  100% 25%, 0 25%); }
+            100% { opacity: 0; transform: translateX(0); }
+        }
+
+        @keyframes glitch-bot {
+            0%   { opacity: 1; transform: translateX(3px)  skewX(2deg);  clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%); }
+            33%  { transform: translateX(-3px) skewX(-1deg); clip-path: polygon(0 70%, 100% 70%, 100% 90%, 0 90%); }
+            66%  { transform: translateX(2px)  skewX(1deg);  clip-path: polygon(0 50%, 100% 50%, 100% 65%, 0 65%); }
+            100% { opacity: 0; transform: translateX(0); }
+        }
+
+        .hero-sub {
+            margin-top: 20px;
+            font-size: 0.88rem;
+            color: rgba(255,255,255,0.4);
+            letter-spacing: 0.04em;
+            line-height: 1.8;
+        }
+
+        .hero-sub strong { color: rgba(255,255,255,0.75); }
+
+        /* ── MOCK BROWSER ────────────────────────────────────── */
+        .mock-wrap {
+            display: flex;
+            justify-content: center;
+            padding: 32px 24px 0;
+        }
+
+        .mock-browser {
+            width: min(780px, 100%);
+            border: 1px solid var(--border);
+            background: #080808;
+            box-shadow: 0 0 80px rgba(0,242,234,0.06), 0 0 0 1px rgba(0,242,234,0.06);
+        }
+
+        .mock-titlebar {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            background: #111;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .mock-dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+        }
+        .mock-dot.red    { background: #ff5f57; }
+        .mock-dot.yellow { background: #febc2e; }
+        .mock-dot.green  { background: #28c840; }
+
+        .mock-url {
+            margin-left: 12px;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 0.08em;
+        }
+
+        .mock-body { padding: 16px; }
+
+        /* stat chips */
+        .mock-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+
+        .mock-stat {
+            border: 1px solid rgba(255,255,255,0.07);
+            padding: 10px 14px;
+        }
+
+        .mock-stat-label {
+            font-size: 0.55rem;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.3);
+            margin-bottom: 8px;
+        }
+
+        .mock-stat-bar {
+            height: 3px;
+            width: 28px;
+        }
+
+        .mock-stat-bar.cyan   { background: var(--cyan); }
+        .mock-stat-bar.purple { background: var(--purple); }
+        .mock-stat-bar.orange { background: var(--orange); }
+
+        /* leaderboard table */
+        .mock-table { width: 100%; border-collapse: collapse; }
+
+        .mock-table th {
+            font-size: 0.55rem;
+            letter-spacing: 0.15em;
+            color: rgba(255,255,255,0.25);
+            text-align: left;
+            padding: 6px 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .mock-table th:last-child,
+        .mock-table td:last-child { text-align: right; }
+
+        .mock-table td {
+            padding: 7px 8px;
+            font-size: 0.7rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .mock-rank { color: var(--cyan); font-size: 0.65rem; }
+
+        .mock-handle {
+            display: inline-block;
+            background: rgba(255,255,255,0.12);
+            color: transparent;
+            border-radius: 2px;
+            width: 80px;
+            height: 10px;
+            vertical-align: middle;
+            filter: blur(0px);
+        }
+
+        .mock-cf { color: var(--orange); }
+
+        .mock-lc-bars {
+            display: inline-flex;
+            gap: 2px;
+            vertical-align: middle;
+        }
+        .mock-lc-bar {
+            width: 8px;
+            height: 12px;
+            background: var(--orange);
+            opacity: 0.85;
+        }
+        .mock-lc-bar:nth-child(1) { height: 8px; }
+        .mock-lc-bar:nth-child(2) { height: 12px; }
+        .mock-lc-bar:nth-child(3) { height: 10px; }
+        .mock-lc-bar:nth-child(4) { height: 6px; opacity: 0.4; }
+
+        /* ── TICKER ──────────────────────────────────────────── */
+        .ticker-wrap {
+            margin-top: 40px;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            overflow: hidden;
+            white-space: nowrap;
+            padding: 9px 0;
+        }
+
+        .ticker-track {
+            display: inline-block;
+            animation: ticker 24s linear infinite;
+            font-size: 0.65rem;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.3);
+        }
+
+        .ticker-track span { margin-right: 60px; }
+        .ticker-track span::before { content: "// "; color: var(--cyan); }
+
+        @keyframes ticker {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-50%); }
+        }
+
+        /* ── MODAL ───────────────────────────────────────────── */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(6px);
+        }
+
+        .hidden { display: none !important; }
+
+        /* ── CYBER CARD ──────────────────────────────────────── */
+        .glitch-card {
+            position: relative;
+            background: #080c0c;
+            border: 1px solid rgba(0,242,234,0.25);
+            width: 400px;
+            overflow: hidden;
+            box-shadow:
+                0 0 0 1px rgba(0,242,234,0.08),
+                0 0 40px rgba(0,242,234,0.12),
+                inset 0 0 60px rgba(0,0,0,0.6);
+        }
+
+        /* scanlines overlay */
+        .glitch-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.18) 2px,
+                rgba(0,0,0,0.18) 4px
+            );
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── CARD HEADER ─────────────────────────────────────── */
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            background: #050a0a;
+            border-bottom: 1px solid rgba(0,242,234,0.15);
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--cyan);
+            font-size: 0.72rem;
+            letter-spacing: 0.15em;
+        }
+
+        .card-title svg {
+            color: var(--cyan);
+            flex-shrink: 0;
+        }
+
+        .card-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .card-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+        .card-dot.red    { background: #ff5f57; }
+        .card-dot.yellow { background: #febc2e; }
+        .card-dot.green  { background: #28c840; }
+
+        /* ── CARD BODY ───────────────────────────────────────── */
+        .card-body {
+            padding: 28px 32px 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ── FLOATING LABEL INPUTS ───────────────────────────── */
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 14px 0 6px;
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid rgba(0,242,234,0.25);
+            color: #e0e0e0;
+            font-family: "Fira Code", monospace;
+            font-size: 0.88rem;
+            outline: none;
+            display: block;
+            transition: border-color 0.25s;
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .input-group select option { background: #0a0f0f; }
+
+        .input-group label {
+            position: absolute;
+            top: 14px;
+            left: 0;
+            font-size: 0.72rem;
+            letter-spacing: 0.14em;
+            color: rgba(0,242,234,0.45);
+            pointer-events: none;
+            transition: top 0.2s, font-size 0.2s, color 0.2s;
+        }
+
+        .input-group input:focus ~ label,
+        .input-group input:not(:placeholder-shown) ~ label,
+        .input-group select:focus ~ label {
+            top: -2px;
+            font-size: 0.6rem;
+            color: var(--cyan);
+        }
+
+        .input-group input::placeholder { color: transparent; }
+
+        .input-group::after {
+            content: "";
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 0;
+            height: 1px;
+            background: var(--cyan);
+            transition: width 0.3s;
+        }
+
+        .input-group:focus-within::after { width: 100%; }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            border-bottom-color: rgba(0,242,234,0.1);
+        }
+
+        /* ── SUBMIT BUTTON ───────────────────────────────────── */
+        .btn-initiate {
+            position: relative;
+            display: block;
+            width: 100%;
+            padding: 13px;
+            margin-top: 8px;
+            background: var(--cyan);
+            color: #000;
+            border: none;
+            font-family: "Fira Code", monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            cursor: pointer;
+            overflow: hidden;
+            transition: background 0.2s, color 0.2s;
+            z-index: 0;
+        }
+
+        .btn-initiate::before,
+        .btn-initiate::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: "Fira Code", monospace;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.16em;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+
+        .btn-initiate::before {
+            color: #ff00ea;
+            left: 3px;
+            text-shadow: -2px 0 #ff00ea;
+        }
+
+        .btn-initiate::after {
+            color: #00f2ea;
+            left: -3px;
+            text-shadow: 2px 0 #00f2ea;
+        }
+
+        .btn-initiate:hover {
+            background: #000;
+            color: var(--cyan);
+            box-shadow: 0 0 18px rgba(0,242,234,0.35), 0 0 4px rgba(0,242,234,0.2);
+        }
+
+        .btn-initiate:hover::before { animation: btn-glitch-top 0.4s steps(3) infinite; }
+        .btn-initiate:hover::after  { animation: btn-glitch-bot 0.4s steps(3) infinite; }
+
+        @keyframes btn-glitch-top {
+            0%   { opacity: 0.7; transform: translateX(-4px); clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%); }
+            33%  { transform: translateX(4px);  clip-path: polygon(0 20%, 100% 20%, 100% 60%, 0 60%); }
+            66%  { transform: translateX(-2px); clip-path: polygon(0 40%, 100% 40%, 100% 80%, 0 80%); }
+            100% { opacity: 0.7; transform: translateX(0); clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%); }
+        }
+
+        @keyframes btn-glitch-bot {
+            0%   { opacity: 0.7; transform: translateX(4px);  clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%); }
+            33%  { transform: translateX(-4px); clip-path: polygon(0 35%, 100% 35%, 100% 75%, 0 75%); }
+            66%  { transform: translateX(2px);  clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%); }
+            100% { opacity: 0.7; transform: translateX(0);  clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%); }
+        }
+
+        /* ── TOGGLE / FOOTER ─────────────────────────────────── */
+        .toggle {
+            margin-top: 16px;
+            width: 100%;
+            padding: 11px 14px;
+            background: transparent;
+            border: 1px solid rgba(0,242,234,0.22);
+            color: rgba(255,255,255,0.72);
+            cursor: pointer;
+            text-align: center;
+            letter-spacing: 0.08em;
+            font-family: "Fira Code", monospace;
+            font-size: 0.68rem;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
+        }
+
+        .toggle:hover {
+            color: var(--cyan);
+            border-color: rgba(0,242,234,0.45);
+            background: rgba(0,242,234,0.06);
+        }
+
+        .card-status {
+            padding: 8px 32px;
+            font-size: 0.58rem;
+            letter-spacing: 0.15em;
+            color: rgba(0,242,234,0.35);
+            border-top: 1px solid rgba(0,242,234,0.08);
+            position: relative;
+            z-index: 1;
+        }
+
+        .card-status::before { content: "▶ "; }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-logo">[ CP_LEADERBOARD ]</div>
+        <div id="authArea">
+            <button id="loginBtn">LOGIN</button>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-title glitch" data-text="TRACK. ANALYZE. COMPETE.">
+            TRACK. <span class="accent">ANALYZE.</span> COMPETE.
+        </div>
+        <p class="hero-sub">
+            Your college's <strong>Codeforces</strong> &amp; <strong>LeetCode</strong> performance —<br>
+            unified on one leaderboard.
+        </p>
+    </section>
+
+    <!-- MOCK BROWSER PREVIEW -->
+    <div class="mock-wrap">
+        <div class="mock-browser">
+
+            <div class="mock-titlebar">
+                <div class="mock-dot red"></div>
+                <div class="mock-dot yellow"></div>
+                <div class="mock-dot green"></div>
+                <span class="mock-url">cp-leaderboard.app/dashboard</span>
+            </div>
+
+            <div class="mock-body">
+
+                <!-- Stat chips -->
+                <div class="mock-stats">
+                    <div class="mock-stat">
+                        <div class="mock-stat-label">// TOTAL_MEMBERS</div>
+                        <div id="statMembers" style="font-size:1.1rem;font-weight:700;color:#00f2ea;margin-top:4px;">—</div>
+                    </div>
+                    <div class="mock-stat">
+                        <div class="mock-stat-label">// TOP_CF_PTS</div>
+                        <div id="statTopCF" style="font-size:1.1rem;font-weight:700;color:#a855f7;margin-top:4px;">—</div>
+                    </div>
+                    <div class="mock-stat">
+                        <div class="mock-stat-label">// MAX_LC_PTS</div>
+                        <div id="statMaxLC" style="font-size:1.1rem;font-weight:700;color:#f7941e;margin-top:4px;">—</div>
+                    </div>
+                </div>
+
+                <!-- Live leaderboard -->
+                <table class="mock-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>HANDLE</th>
+                            <th>CF PTS</th>
+                            <th>LC PTS</th>
+                            <th style="text-align:right">TOTAL</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lbBody">
+                        <tr><td colspan="5" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// LOADING...</td></tr>
+                    </tbody>
+                </table>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- TICKER -->
+    <div class="ticker-wrap">
+        <div class="ticker-track">
+            <span>LEETCODE INTEGRATION: ACTIVE</span>
+            <span>WEEKLY RANKINGS: UPDATED</span>
+            <span>TRACK YOUR COLLEGE PEERS</span>
+            <span>CP_LEADERBOARD v2.0 — LIVE</span>
+            <span>CODEFORCES INTEGRATION: ACTIVE</span>
+            <span>LEETCODE INTEGRATION: ACTIVE</span>
+            <span>WEEKLY RANKINGS: UPDATED</span>
+            <span>TRACK YOUR COLLEGE PEERS</span>
+            <span>CP_LEADERBOARD v2.0 — LIVE</span>
+            <span>CODEFORCES INTEGRATION: ACTIVE</span>
+        </div>
+    </div>
+
+
+    <!-- LOGIN MODAL -->
+    <div id="loginModal" class="modal hidden">
+        <form id="loginForm" class="glitch-card">
+
+            <!-- Card Header -->
+            <div class="card-header">
+                <div class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                        <path d="M14 3v4a1 1 0 0 0 1 1h4"/>
+                        <path d="M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2z"/>
+                        <line x1="9" y1="9" x2="10" y2="9"/>
+                        <line x1="9" y1="13" x2="15" y2="13"/>
+                        <line x1="9" y1="17" x2="15" y2="17"/>
+                    </svg>
+                    <span id="formTitle">SECURE_DATA</span>
+                </div>
+                <div class="card-dots">
+                    <div class="card-dot red"></div>
+                    <div class="card-dot yellow"></div>
+                    <div class="card-dot green"></div>
+                </div>
+            </div>
+
+            <!-- Card Body -->
+            <div class="card-body">
+
+                <div id="usernameWrap" class="input-group" style="display:none">
+                    <input type="text" id="username" placeholder=" ">
+                    <label for="username">// USERNAME</label>
+                </div>
+
+                <div id="semesterWrap" class="input-group" style="display:none">
+                    <select id="semester">
+                        <option value="" disabled selected></option>
+                        <option value="1">Semester 1</option>
+                        <option value="2">Semester 2</option>
+                        <option value="3">Semester 3</option>
+                        <option value="4">Semester 4</option>
+                        <option value="5">Semester 5</option>
+                        <option value="6">Semester 6</option>
+                        <option value="7">Semester 7</option>
+                        <option value="8">Semester 8</option>
+                    </select>
+                    <label for="semester">// SEMESTER</label>
+                </div>
+
+                <div class="input-group">
+                    <input type="email" id="email" placeholder=" " required>
+                    <label for="email">// EMAIL</label>
+                </div>
+
+                <div class="input-group">
+                    <input type="password" id="password" placeholder=" " required>
+                    <label for="password">// PASSWORD</label>
+                </div>
+
+                <button type="submit" class="btn-initiate" data-text="INITIATE_CONNECTION">INITIATE_CONNECTION</button>
+
+                <button type="button" id="toggleAuth" class="toggle">Don't have an account? Register</button>
+
+            </div>
+
+            <!-- Card Footer -->
+            <div class="card-status" id="cardStatus">SYSTEM_READY</div>
+
+        </form>
+    </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="./lib/supabase.js"></script>
+
+    <script>
+        const modal        = document.getElementById("loginModal");
+        const loginBtn     = document.getElementById("loginBtn");
+        const toggleAuth   = document.getElementById("toggleAuth");
+        const form         = document.getElementById("loginForm");
+        const formTitle    = document.getElementById("formTitle");
+        const usernameWrap = document.getElementById("usernameWrap");
+        const semesterWrap = document.getElementById("semesterWrap");
+        const usernameInput = document.getElementById("username");
+        const semesterInput = document.getElementById("semester");
+
+        let isLogin = true;
+
+        loginBtn.onclick = () => modal.classList.remove("hidden");
+
+        // Close on backdrop click
+        modal.addEventListener("click", (e) => { if (e.target === modal) modal.classList.add("hidden"); });
+
+        const cardStatus = document.getElementById("cardStatus");
+
+        toggleAuth.onclick = () => {
+            isLogin = !isLogin;
+            const show = !isLogin;
+            usernameWrap.style.display = show ? "block" : "none";
+            semesterWrap.style.display = show ? "block" : "none";
+            usernameInput.required = show;
+            semesterInput.required = show;
+            formTitle.textContent  = isLogin ? "SECURE_DATA" : "REGISTER_USER";
+            toggleAuth.textContent = isLogin
+                ? "Don't have an account? Register"
+                : "Already have an account? Login";
+            cardStatus.textContent = isLogin ? "SYSTEM_READY" : "AWAIT_INPUT";
+        };
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email    = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value;
+            const username = usernameInput.value.trim();
+            const semester = parseInt(semesterInput.value) || null;
+
+            if (isLogin) {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) { alert(error.message); return; }
+                // afterLogin will pick up any pending profile data from localStorage
+                await afterLogin(data.user);
+
+            } else {
+                if (!username) { alert("Please enter a username."); return; }
+                if (!semester) { alert("Please select your semester."); return; }
+
+                // Plain signUp — no user_metadata so auth.users stays clean
+                const pendingProfile = JSON.stringify({ full_name: username, semester });
+                localStorage.setItem("pending_profile", pendingProfile);
+
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            full_name: username,
+                            semester
+                        }
+                    }
+                });
+                if (error) {
+                    localStorage.removeItem("pending_profile");
+                    alert(error.message);
+                    return;
+                }
+
+                if (data.session) {
+                    // Email confirmation OFF — session is live, write to profiles now.
+                    const saved = await writeProfile(data.user.id, username, semester);
+                    if (!saved) {
+                        alert("Account created, but your username could not be saved yet. Please log in once and try again.");
+                        return;
+                    }
+                    localStorage.removeItem("pending_profile");
+                    await afterLogin(data.user);
+                } else {
+                    // Email confirmation ON — stash data in localStorage so afterLogin
+                    // can retrieve it after the user clicks the verify link and logs in.
+                    alert("Account created! Check your email to verify, then log in.");
+                    isLogin = true;
+                    usernameWrap.style.display = "none";
+                    semesterWrap.style.display = "none";
+                    formTitle.textContent = "SECURE_DATA";
+                    cardStatus.textContent = "SYSTEM_READY";
+                    toggleAuth.textContent = "Don't have an account? Register";
+                }
+            }
+        });
+
+        // Write full_name + semester to the profiles table.
+        // Must be called while an active session exists (auth.uid() must match id).
+        async function writeProfile(userId, fullName, semester) {
+            const cleanName = fullName.trim();
+            const updates = { full_name: cleanName, semester };
+
+            let { error } = await supabase
+                .from("profiles")
+                .update(updates)
+                .eq("id", userId);
+
+            if (error) {
+                const insertResult = await supabase
+                    .from("profiles")
+                    .insert({ id: userId, ...updates });
+
+                error = insertResult.error;
+            }
+
+            if (error) {
+                console.error("profiles write failed:", error.message);
+                return false;
+            }
+
+            const { data: profile, error: verifyError } = await supabase
+                .from("profiles")
+                .select("full_name, semester")
+                .eq("id", userId)
+                .single();
+
+            if (verifyError) {
+                console.error("profiles verification failed:", verifyError.message);
+                return false;
+            }
+
+            return profile?.full_name === cleanName && profile?.semester === semester;
+        }
+
+        async function afterLogin(user) {
+            // Recover any pending profile data saved before email confirmation.
+            const pending = localStorage.getItem("pending_profile");
+            if (pending) {
+                try {
+                    const { full_name, semester } = JSON.parse(pending);
+                    const saved = await writeProfile(user.id, full_name, semester);
+                    if (saved) {
+                        localStorage.removeItem("pending_profile");
+                    }
+                } catch (_) {}
+            }
+
+            const { data: platforms } = await supabase
+                .from("platform_accounts")
+                .select("id")
+                .eq("user_id", user.id)
+                .limit(1);
+
+            window.location.href = (platforms && platforms.length > 0)
+                ? "./dashboard.html"
+                : "./setup.html";
+        }
+
+        async function checkUser() {
+            const { data } = await supabase.auth.getUser();
+            if (!data.user) return;
+
+            const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("id", data.user.id)
+                .single();
+
+            const display = profile?.full_name
+                || data.user.user_metadata?.full_name
+                || data.user.email.split("@")[0];
+
+            document.getElementById("authArea").innerHTML =
+                `<span style="color:var(--cyan);cursor:pointer;font-size:0.8rem;letter-spacing:0.1em"
+                       onclick="window.location.href='./dashboard.html'">${display}</span>`;
+        }
+
+        async function loadLeaderboard() {
+            const { data: scores, error } = await supabase.functions.invoke('get-leaderboard');
+
+            if (error || !scores || scores.length === 0) {
+                document.getElementById('lbBody').innerHTML =
+                    `<tr><td colspan="5" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO DATA YET — BE THE FIRST TO JOIN</td></tr>`;
+                return;
+            }
+
+            // Get current user id (may be null for anonymous visitors)
+            const { data: { user: me } } = await supabase.auth.getUser();
+            const myId = me?.id || null;
+
+            // Stat chips
+            document.getElementById('statMembers').textContent = scores.length;
+            const topCF = Math.max(...scores.map(s => s.codeforces_points || 0));
+            const maxLC = Math.max(...scores.map(s => s.leetcode_points || 0));
+            document.getElementById('statTopCF').textContent = topCF;
+            document.getElementById('statMaxLC').textContent = maxLC;
+
+            // Build rows
+            const tbody = document.getElementById('lbBody');
+            tbody.innerHTML = scores.map((s, i) => {
+                const isMe = s.user_id === myId;
+                const rank = String(i + 1).padStart(2, '0');
+                const name = s.handle || s.full_name || '—';
+                const cf   = s.codeforces_points ?? '—';
+                const lc   = s.leetcode_points   ?? '—';
+                const tot  = s.total_points       ?? '—';
+                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
+                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
+                return `<tr style="${rowStyle}">
+                    <td class="mock-rank">${rank}${isMe ? ' ◀' : ''}</td>
+                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
+                    <td style="color:#f7941e">${cf}</td>
+                    <td style="color:#ffa116">${lc}</td>
+                    <td style="color:#00f2ea;text-align:right">${tot}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        checkUser();
+        loadLeaderboard();
+
+        // Periodic glitch trigger
+        (function scheduleGlitch() {
+            const el = document.querySelector('.hero-title.glitch');
+            const delay = 2000 + Math.random() * 4000;
+            setTimeout(() => {
+                if (el) {
+                    el.classList.add('glitch-active');
+                    setTimeout(() => el.classList.remove('glitch-active'), 350);
+                }
+                scheduleGlitch();
+            }, delay);
+        })();
+    </script>
+
+</body>
+</html>

@@ -46,9 +46,9 @@ serve(async () => {
       if (problem.platform === "leetcode") {
         const difficulty = problem.difficulty;
 
-        if (difficulty === "Easy") points = 800;
-        else if (difficulty === "Medium") points = 1000;
-        else if (difficulty === "Hard") points = 1500;
+        if (difficulty === "Easy") points = 100;
+        else if (difficulty === "Medium") points = 200;
+        else if (difficulty === "Hard") points = 400;
       }
 
       if (!userPointsMap[userId]) {

@@ -97,13 +97,15 @@ serve(async (req) => {
         problem_db_id = existingProblem.id;
       }
 
+      const solvedAt = submissionTimeSecondsToIso(accepted, problemId);
+
       // Insert submission (upsert prevents duplicates)
       await supabase.from("submissions").upsert(
         {
           user_id,
           platform: "codeforces",
           problem_id: problem_db_id,
-          solved_at: new Date().toISOString(),
+          solved_at: solvedAt,
         },
         { onConflict: "user_id,problem_id" }
       );
@@ -129,15 +131,29 @@ serve(async (req) => {
       else totalPoints += 400;
     });
 
-    // 6️⃣ UPDATE user_scores table (THIS WAS MISSING)
+    const { data: existingScore, error: scoreError } = await supabase
+      .from("user_scores")
+      .select("leetcode_points")
+      .eq("user_id", user_id)
+      .maybeSingle();
+
+    if (scoreError) throw scoreError;
+
+    const leetcodePoints = existingScore?.leetcode_points || 0;
+
+    // 6️⃣ UPDATE user_scores table
     await supabase
       .from("user_scores")
-      .update({
-        codeforces_points: totalPoints,
-        total_points: totalPoints, // later combine platforms
-        last_updated: new Date().toISOString(),
-      })
-      .eq("user_id", user_id);
+      .upsert(
+        {
+          user_id,
+          codeforces_points: totalPoints,
+          leetcode_points: leetcodePoints,
+          total_points: totalPoints + leetcodePoints,
+          last_updated: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
 
     return new Response(
       JSON.stringify({
@@ -155,3 +171,16 @@ serve(async (req) => {
     );
   }
 });
+
+function submissionTimeSecondsToIso(submissions: any[], problemId: string) {
+  const match = submissions.find((submission: any) => {
+    const candidateId = `${submission.problem.contestId}-${submission.problem.index}`;
+    return candidateId === problemId;
+  });
+
+  if (!match?.creationTimeSeconds) {
+    return new Date().toISOString();
+  }
+
+  return new Date(match.creationTimeSeconds * 1000).toISOString();
+}

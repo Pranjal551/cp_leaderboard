@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Platform Setup - CP Leaderboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #050505;
+            color: white;
+            font-family: "Fira Code", monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .setup-card {
+            background: #0d0d0d;
+            border: 1px solid rgba(0, 242, 234, 0.25);
+            padding: 40px;
+            width: 420px;
+            box-shadow: 0 0 40px rgba(0, 242, 234, 0.06);
+        }
+
+        h2 {
+            color: #00f2ea;
+            letter-spacing: 0.12em;
+            font-size: 1rem;
+            margin-bottom: 6px;
+        }
+
+        .sub {
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            margin-bottom: 28px;
+        }
+
+        .platform-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .platform-btn {
+            flex: 1;
+            background: none;
+            border: 1px solid #222;
+            color: #555;
+            padding: 14px;
+            cursor: pointer;
+            font-family: "Fira Code", monospace;
+            font-size: 0.78rem;
+            letter-spacing: 0.1em;
+            transition: all 0.2s;
+        }
+
+        .platform-btn:hover { border-color: #444; color: #888; }
+
+        .platform-btn.active-cf { border-color: #f7941e; color: #f7941e; box-shadow: 0 0 12px rgba(247, 148, 30, 0.15); }
+        .platform-btn.active-lc { border-color: #ffa116; color: #ffa116; box-shadow: 0 0 12px rgba(255, 161, 22, 0.15); }
+
+        .handle-section { margin-bottom: 20px; }
+
+        .handle-label {
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            color: rgba(255, 255, 255, 0.35);
+            margin-bottom: 6px;
+        }
+
+        .handle-section input {
+            width: 100%;
+            padding: 10px 0;
+            background: none;
+            border: none;
+            border-bottom: 1px solid rgba(0, 242, 234, 0.3);
+            color: white;
+            font-family: "Fira Code", monospace;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .handle-section input:focus { border-bottom-color: #00f2ea; }
+
+        .submit-btn {
+            width: 100%;
+            background: #00f2ea;
+            color: #050505;
+            border: none;
+            padding: 12px;
+            font-family: "Fira Code", monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            margin-top: 8px;
+        }
+
+        .submit-btn:hover { opacity: 0.85; }
+
+        .skip {
+            margin-top: 16px;
+            text-align: center;
+            font-size: 0.68rem;
+            color: #333;
+            cursor: pointer;
+            letter-spacing: 0.05em;
+            transition: color 0.2s;
+        }
+
+        .skip:hover { color: #666; }
+
+        #statusMsg {
+            font-size: 0.72rem;
+            margin-top: 12px;
+            min-height: 1em;
+            color: #ff4d6d;
+            letter-spacing: 0.05em;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="setup-card">
+
+        <h2>// PLATFORM_SETUP</h2>
+        <p class="sub">Select the platforms you compete on</p>
+
+        <div class="platform-row">
+            <button class="platform-btn" id="cfBtn" type="button" onclick="togglePlatform('cf')">CODEFORCES</button>
+            <button class="platform-btn" id="lcBtn" type="button" onclick="togglePlatform('lc')">LEETCODE</button>
+        </div>
+
+        <div id="cfSection" class="handle-section" style="display:none">
+            <div class="handle-label">// CODEFORCES_HANDLE</div>
+            <input type="text" id="cfHandle" placeholder="e.g. tourist" autocomplete="off">
+        </div>
+
+        <div id="lcSection" class="handle-section" style="display:none">
+            <div class="handle-label">// LEETCODE_HANDLE</div>
+            <input type="text" id="lcHandle" placeholder="e.g. neal_wu" autocomplete="off">
+        </div>
+
+        <button class="submit-btn" type="button" onclick="submitPlatforms()">LINK ACCOUNTS -></button>
+        <div id="statusMsg"></div>
+        <div class="skip" onclick="window.location.href='./dashboard.html'">// skip_for_now</div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="./lib/supabase.js"></script>
+
+    <script>
+        const active = { cf: false, lc: false };
+        const statusMsg = document.getElementById("statusMsg");
+
+        function setPlatformState(platform, isActive) {
+            active[platform] = isActive;
+            const btn = document.getElementById(platform + "Btn");
+            const section = document.getElementById(platform + "Section");
+
+            btn.className = "platform-btn" + (isActive ? ` active-${platform}` : "");
+            section.style.display = isActive ? "block" : "none";
+        }
+
+        async function init() {
+            const { data } = await supabase.auth.getUser();
+            if (!data.user) {
+                window.location.href = "./index.html";
+                return;
+            }
+
+            const { data: existing, error } = await supabase
+                .from("platform_accounts")
+                .select("platform, handle")
+                .eq("user_id", data.user.id);
+
+            if (error || !existing) return;
+
+            const cfAccount = existing.find((account) => account.platform === "codeforces");
+            const lcAccount = existing.find((account) => account.platform === "leetcode");
+
+            if (cfAccount) {
+                setPlatformState("cf", true);
+                document.getElementById("cfHandle").value = cfAccount.handle;
+            }
+
+            if (lcAccount) {
+                setPlatformState("lc", true);
+                document.getElementById("lcHandle").value = lcAccount.handle;
+            }
+        }
+
+        function togglePlatform(platform) {
+            setPlatformState(platform, !active[platform]);
+        }
+
+        async function submitPlatforms() {
+            statusMsg.textContent = "";
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                window.location.href = "./index.html";
+                return;
+            }
+
+            const rows = [];
+
+            if (active.cf) {
+                const handle = document.getElementById("cfHandle").value.trim();
+                if (!handle) {
+                    statusMsg.textContent = "// Enter your Codeforces handle.";
+                    return;
+                }
+                rows.push({ user_id: user.id, platform: "codeforces", handle });
+            }
+
+            if (active.lc) {
+                const handle = document.getElementById("lcHandle").value.trim();
+                if (!handle) {
+                    statusMsg.textContent = "// Enter your LeetCode handle.";
+                    return;
+                }
+                rows.push({ user_id: user.id, platform: "leetcode", handle });
+            }
+
+            if (rows.length === 0) {
+                statusMsg.textContent = "// Select at least one platform.";
+                return;
+            }
+
+            const { error } = await supabase
+                .from("platform_accounts")
+                .upsert(rows, { onConflict: "user_id,platform" });
+
+            if (error) {
+                statusMsg.textContent = "// " + error.message;
+                return;
+            }
+
+            statusMsg.textContent = "// Syncing latest submissions...";
+
+            const syncCalls = [];
+
+            if (active.cf) {
+                syncCalls.push(supabase.functions.invoke("sync-codeforces", {
+                    body: { user_id: user.id }
+                }));
+            }
+
+            if (active.lc) {
+                syncCalls.push(supabase.functions.invoke("sync-leetcode", {
+                    body: { user_id: user.id }
+                }));
+            }
+
+            await Promise.allSettled(syncCalls);
+
+            window.location.href = "./dashboard.html";
+        }
+
+        init();
+    </script>
+
+</body>
+
+</html>

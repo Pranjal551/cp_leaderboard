@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard — CP Leaderboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #050505;
+            color: white;
+            font-family: "Fira Code", monospace;
+            min-height: 100vh;
+        }
+
+        /* NAV */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 40px;
+            border-bottom: 1px solid rgba(0,242,234,0.12);
+            background: rgba(5,5,5,0.8);
+        }
+
+        .nav-logo { color: #00f2ea; letter-spacing: 0.12em; font-size: 0.9rem; }
+
+        .nav-user { display: flex; align-items: center; gap: 16px; }
+
+        #displayName { color: #00f2ea; font-size: 0.8rem; letter-spacing: 0.1em; }
+
+        .nav-link {
+            color: rgba(255,255,255,0.3);
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: inherit;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover { color: #ff4d6d; }
+
+        /* MAIN */
+        .main {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        .section-title {
+            font-size: 0.65rem;
+            letter-spacing: 0.2em;
+            color: rgba(255,255,255,0.3);
+            margin-bottom: 20px;
+        }
+
+        /* STAT CARDS */
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: rgba(13,13,13,0.92);
+            border: 1px solid rgba(0,242,234,0.14);
+            padding: 20px 24px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.18em;
+            color: rgba(255,255,255,0.3);
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .card-value.cf { color: #f7941e; }
+        .card-value.lc { color: #ffa116; }
+        .card-value.total { color: #00f2ea; }
+
+        .card-sub {
+            margin-top: 6px;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.25);
+            letter-spacing: 0.08em;
+        }
+
+        .sync-status {
+            margin-bottom: 20px;
+            font-size: 0.68rem;
+            color: rgba(255,255,255,0.38);
+            letter-spacing: 0.08em;
+        }
+
+        /* PLATFORM ACCOUNTS */
+        .handles-section { margin-bottom: 40px; }
+
+        .handle-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .handle-row:last-child { border-bottom: none; }
+
+        .handle-platform {
+            font-size: 0.68rem;
+            letter-spacing: 0.12em;
+            width: 100px;
+        }
+
+        .handle-platform.cf { color: #f7941e; }
+        .handle-platform.lc { color: #ffa116; }
+
+        .handle-name { font-size: 0.85rem; color: rgba(255,255,255,0.8); }
+
+        /* EMPTY STATE */
+        .empty {
+            color: rgba(255,255,255,0.25);
+            font-size: 0.78rem;
+            letter-spacing: 0.1em;
+            padding: 20px 0;
+        }
+
+        .add-platform-btn {
+            background: none;
+            border: 1px solid rgba(0,242,234,0.3);
+            color: #00f2ea;
+            font-family: "Fira Code", monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            padding: 8px 20px;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: all 0.2s;
+        }
+
+        .add-platform-btn:hover { background: rgba(0,242,234,0.08); }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="nav-logo">[ CP_LEADERBOARD ]</div>
+        <div class="nav-user">
+            <span id="displayName">—</span>
+            <button class="nav-link" onclick="logout()">LOGOUT</button>
+        </div>
+    </nav>
+
+    <div class="main">
+        <div class="sync-status" id="syncStatus">// Checking latest submissions...</div>
+
+        <!-- STATS -->
+        <div class="section-title">// YOUR_STATS</div>
+        <div class="cards">
+            <div class="card">
+                <div class="card-label">// CF_POINTS</div>
+                <div class="card-value cf" id="cfPoints">—</div>
+                <div class="card-sub" id="cfHandle">—</div>
+            </div>
+            <div class="card">
+                <div class="card-label">// LC_POINTS</div>
+                <div class="card-value lc" id="lcPoints">—</div>
+                <div class="card-sub" id="lcHandle">—</div>
+            </div>
+            <div class="card">
+                <div class="card-label">// TOTAL_POINTS</div>
+                <div class="card-value total" id="totalPoints">—</div>
+                <div class="card-sub">LIFETIME</div>
+            </div>
+        </div>
+
+        <!-- LINKED PLATFORMS -->
+        <div class="section-title">// LINKED_PLATFORMS</div>
+        <div class="handles-section" id="handlesList">
+            <div class="empty">// Loading...</div>
+        </div>
+        <button class="add-platform-btn" onclick="window.location.href='./setup.html'">+ ADD PLATFORM</button>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="./lib/supabase.js"></script>
+
+    <script>
+        async function init() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) { window.location.href = "./index.html"; return; }
+            const syncStatus = document.getElementById("syncStatus");
+
+            // Show name
+            const { data: profile } = await supabase
+                .from("profiles").select("full_name").eq("id", user.id).single();
+            const name = profile?.full_name || user.user_metadata?.full_name || user.email.split("@")[0];
+            document.getElementById("displayName").textContent = name;
+
+            // Load platform accounts
+            const { data: accounts } = await supabase
+                .from("platform_accounts")
+                .select("platform, handle")
+                .eq("user_id", user.id);
+
+            const list = document.getElementById("handlesList");
+            if (!accounts || accounts.length === 0) {
+                list.innerHTML = '<div class="empty">// No platforms linked yet.</div>';
+            } else {
+                list.innerHTML = accounts.map(a => `
+                    <div class="handle-row">
+                        <span class="handle-platform ${a.platform === 'codeforces' ? 'cf' : 'lc'}">
+                            ${a.platform === 'codeforces' ? '⚡ CODEFORCES' : '🔥 LEETCODE'}
+                        </span>
+                        <span class="handle-name">${a.handle}</span>
+                    </div>
+                `).join("");
+            }
+
+            // Update handle subtitles
+            const cfAcc = accounts?.find(a => a.platform === "codeforces");
+            const lcAcc = accounts?.find(a => a.platform === "leetcode");
+            if (cfAcc) document.getElementById("cfHandle").textContent = cfAcc.handle;
+            if (lcAcc) document.getElementById("lcHandle").textContent = lcAcc.handle;
+
+            const syncCalls = [];
+            if (cfAcc) {
+                syncCalls.push(
+                    supabase.functions.invoke("sync-codeforces", {
+                        body: { user_id: user.id }
+                    })
+                );
+            }
+            if (lcAcc) {
+                syncCalls.push(
+                    supabase.functions.invoke("sync-leetcode", {
+                        body: { user_id: user.id }
+                    })
+                );
+            }
+
+            if (syncCalls.length > 0) {
+                const results = await Promise.allSettled(syncCalls);
+                const failed = results.some(result => result.status === "rejected");
+                syncStatus.textContent = failed
+                    ? "// Partial refresh completed. Some platforms may still be stale."
+                    : "// Latest submissions synced.";
+            } else {
+                syncStatus.textContent = "// Link a platform to start syncing submissions.";
+            }
+
+            // Load scores
+            const { data: scores } = await supabase
+                .from("user_scores")
+                .select("codeforces_points, leetcode_points, total_points, last_updated")
+                .eq("user_id", user.id)
+                .single();
+
+            if (scores) {
+                const computedTotal =
+                    (scores.codeforces_points ?? 0) + (scores.leetcode_points ?? 0);
+
+                if (scores.codeforces_points != null)
+                    document.getElementById("cfPoints").textContent = scores.codeforces_points;
+                if (scores.leetcode_points != null)
+                    document.getElementById("lcPoints").textContent = scores.leetcode_points;
+                document.getElementById("totalPoints").textContent = computedTotal;
+                if (scores.last_updated) {
+                    syncStatus.textContent = `// Last synced: ${new Date(scores.last_updated).toLocaleString()}`;
+                }
+            }
+        }
+
+        async function logout() {
+            await supabase.auth.signOut();
+            window.location.href = "./index.html";
+        }
+
+        init();
+    </script>
+
+</body>
+
+</html>
