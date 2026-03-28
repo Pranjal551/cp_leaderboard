@@ -31,7 +31,7 @@
         .section-title { font-size: 0.7rem; letter-spacing: 0.18em; color: rgba(255,255,255,0.34); margin-bottom: 16px; }
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 16px;
             margin-bottom: 26px;
         }
@@ -39,23 +39,23 @@
         .stat-card {
             border: 1px solid rgba(0,242,234,0.14);
             background: rgba(13,13,13,0.92);
-            padding: 20px 22px;
+            padding: 16px 18px;
         }
 
         .stat-label {
-            font-size: 0.58rem;
+            font-size: 0.8rem;
             letter-spacing: 0.16em;
-            color: rgba(255,255,255,0.28);
+            color: #00f2ea;
             margin-bottom: 10px;
         }
 
         .stat-value {
-            font-size: 1.9rem;
+            font-size: 2.35rem;
             font-weight: 700;
             line-height: 1;
+            letter-spacing: 0.04em;
         }
 
-        .stat-value.members { color: #00f2ea; }
         .stat-value.cf { color: #f7941e; }
         .stat-value.lc { color: #ffa116; }
 
@@ -98,11 +98,19 @@
         .total-points { color: #00f2ea; }
 
         .me-row {
-            background: rgba(0,242,234,0.05);
+            background:
+                linear-gradient(90deg, rgba(0,242,234,0.14), rgba(0,242,234,0.04) 24%, rgba(0,242,234,0.02) 100%);
+            box-shadow: inset 3px 0 0 #00f2ea;
         }
 
         .me-name {
             color: #00f2ea;
+            text-shadow: 0 0 14px rgba(0,242,234,0.24);
+        }
+
+        .me-row .rank,
+        .me-row .total-points {
+            text-shadow: 0 0 14px rgba(0,242,234,0.24);
         }
 
         .empty {
@@ -116,19 +124,14 @@
 <body>
     <nav class="navbar" id="appNavbar"></nav>
     <div class="main">
-        <div class="section-title">// LEADERBOARD</div>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-label">// TOTAL_MEMBERS</div>
-                <div class="stat-value members" id="statMembers">-</div>
+                <div class="stat-label">// YOUR_CF_POINTS</div>
+                <div class="stat-value cf" id="statMyCF">N/A</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">// TOP_CF_PTS</div>
-                <div class="stat-value cf" id="statTopCF">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">// MAX_LC_PTS</div>
-                <div class="stat-value lc" id="statMaxLC">-</div>
+                <div class="stat-label">// YOUR_LC_POINTS</div>
+                <div class="stat-value lc" id="statMyLC">N/A</div>
             </div>
         </div>
         <div class="board-shell">
@@ -165,9 +168,14 @@
                 return;
             }
 
-            document.getElementById("statMembers").textContent = scores.length;
-            document.getElementById("statTopCF").textContent = Math.max(...scores.map(s => s.codeforces_points || 0));
-            document.getElementById("statMaxLC").textContent = Math.max(...scores.map(s => s.leetcode_points || 0));
+            const myEntry = scores.find(entry => entry.user_id === myId) || null;
+            const hasCF = (appState.accounts || []).some(account => account.platform === "codeforces");
+            const hasLC = (appState.accounts || []).some(account => account.platform === "leetcode");
+
+            document.getElementById("statMyCF").textContent =
+                hasCF ? String(myEntry?.codeforces_points ?? 0) : "N/A";
+            document.getElementById("statMyLC").textContent =
+                hasLC ? String(myEntry?.leetcode_points ?? 0) : "N/A";
 
             document.getElementById("lbBody").innerHTML = scores.map((entry, index) => {
                 const isMe = entry.user_id === myId;
@@ -176,7 +184,7 @@
 
                 return `
                     <tr class="${rowClass}">
-                        <td class="rank">${String(index + 1).padStart(2, "0")}${isMe ? " <" : ""}</td>
+                        <td class="rank">${String(index + 1).padStart(2, "0")}</td>
                         <td class="${nameClass}">${entry.handle || entry.full_name || "-"}</td>
                         <td class="cf-points">${entry.codeforces_points ?? 0}</td>
                         <td class="lc-points">${entry.leetcode_points ?? 0}</td>
