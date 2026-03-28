@@ -535,6 +535,22 @@
             background: rgba(0,242,234,0.06);
         }
 
+        .text-link {
+            margin-top: 14px;
+            width: 100%;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.46);
+            font-family: "Fira Code", monospace;
+            font-size: 0.64rem;
+            letter-spacing: 0.12em;
+            cursor: pointer;
+            text-align: center;
+            transition: color 0.2s;
+        }
+
+        .text-link:hover { color: var(--cyan); }
+
         .card-status {
             padding: 8px 32px;
             font-size: 0.58rem;
@@ -695,6 +711,7 @@
 
                 <button type="submit" class="btn-initiate" data-text="INITIATE_CONNECTION">INITIATE_CONNECTION</button>
 
+                <button type="button" id="forgotBtn" class="text-link">FORGOT PASSWORD?</button>
                 <button type="button" id="toggleAuth" class="toggle">Don't have an account? Register</button>
 
             </div>
@@ -713,14 +730,18 @@
         const modal        = document.getElementById("loginModal");
         const loginBtn     = document.getElementById("loginBtn");
         const toggleAuth   = document.getElementById("toggleAuth");
+        const forgotBtn    = document.getElementById("forgotBtn");
         const form         = document.getElementById("loginForm");
         const formTitle    = document.getElementById("formTitle");
         const usernameWrap = document.getElementById("usernameWrap");
         const semesterWrap = document.getElementById("semesterWrap");
         const usernameInput = document.getElementById("username");
         const semesterInput = document.getElementById("semester");
+        const passwordInput = document.getElementById("password");
+        const submitBtn = form.querySelector(".btn-initiate");
 
         let isLogin = true;
+        let isResetMode = false;
 
         loginBtn.onclick = () => modal.classList.remove("hidden");
 
@@ -729,18 +750,52 @@
 
         const cardStatus = document.getElementById("cardStatus");
 
-        toggleAuth.onclick = () => {
-            isLogin = !isLogin;
-            const show = !isLogin;
-            usernameWrap.style.display = show ? "block" : "none";
-            semesterWrap.style.display = show ? "block" : "none";
-            usernameInput.required = show;
-            semesterInput.required = show;
-            formTitle.textContent  = isLogin ? "SECURE_DATA" : "REGISTER_USER";
+        function updateAuthModeUI() {
+            const showRegister = !isLogin && !isResetMode;
+
+            usernameWrap.style.display = showRegister ? "block" : "none";
+            semesterWrap.style.display = showRegister ? "block" : "none";
+            usernameInput.required = showRegister;
+            semesterInput.required = showRegister;
+
+            passwordInput.required = !isResetMode;
+            passwordInput.parentElement.style.display = isResetMode ? "none" : "block";
+            forgotBtn.style.display = isLogin && !isResetMode ? "block" : "none";
+
+            if (isResetMode) {
+                formTitle.textContent = "RESET_ACCESS";
+                submitBtn.textContent = "SEND_RESET_LINK";
+                submitBtn.setAttribute("data-text", "SEND_RESET_LINK");
+                toggleAuth.textContent = "Back to Login";
+                cardStatus.textContent = "ENTER_YOUR_EMAIL";
+                return;
+            }
+
+            formTitle.textContent = isLogin ? "SECURE_DATA" : "REGISTER_USER";
+            submitBtn.textContent = "INITIATE_CONNECTION";
+            submitBtn.setAttribute("data-text", "INITIATE_CONNECTION");
             toggleAuth.textContent = isLogin
                 ? "Don't have an account? Register"
                 : "Already have an account? Login";
             cardStatus.textContent = isLogin ? "SYSTEM_READY" : "AWAIT_INPUT";
+        }
+
+        toggleAuth.onclick = () => {
+            if (isResetMode) {
+                isResetMode = false;
+                isLogin = true;
+                updateAuthModeUI();
+                return;
+            }
+
+            isLogin = !isLogin;
+            updateAuthModeUI();
+        };
+
+        forgotBtn.onclick = () => {
+            isResetMode = true;
+            isLogin = false;
+            updateAuthModeUI();
         };
 
         form.addEventListener("submit", async (e) => {
@@ -749,6 +804,21 @@
             const password = document.getElementById("password").value;
             const username = usernameInput.value.trim();
             const semester = parseInt(semesterInput.value) || null;
+
+            if (isResetMode) {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/reset-password.html`
+                });
+
+                if (error) {
+                    alert(error.message);
+                    return;
+                }
+
+                cardStatus.textContent = "RESET_EMAIL_SENT";
+                alert("Password reset email sent. Open the link in your email to create a new password.");
+                return;
+            }
 
             if (isLogin) {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
@@ -794,11 +864,8 @@
                     // can retrieve it after the user clicks the verify link and logs in.
                     alert("Account created! Check your email to verify, then log in.");
                     isLogin = true;
-                    usernameWrap.style.display = "none";
-                    semesterWrap.style.display = "none";
-                    formTitle.textContent = "SECURE_DATA";
-                    cardStatus.textContent = "SYSTEM_READY";
-                    toggleAuth.textContent = "Don't have an account? Register";
+                    isResetMode = false;
+                    updateAuthModeUI();
                 }
             }
         });
@@ -927,6 +994,7 @@
 
         checkUser();
         loadLeaderboard();
+        updateAuthModeUI();
 
         // Periodic glitch trigger
         (function scheduleGlitch() {
