@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Leaderboard — CP Leaderboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        if (sessionStorage.getItem("nav_loader") === "1") {
+            document.documentElement.classList.add("nav-pending");
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html.nav-pending body > *:not(#navTransitionOverlay):not(#topLoader) { opacity: 0 !important; }
+        body { background: #050505; color: white; font-family: "Fira Code", monospace; min-height: 100vh; }
+        .navbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 18px 40px; border-bottom: 1px solid rgba(0,242,234,0.12); background: rgba(5,5,5,0.8); gap: 24px; }
+        .nav-logo { color: #00f2ea; letter-spacing: 0.12em; font-size: 0.9rem; flex-shrink: 0; justify-self: start; }
+        .nav-menu { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: center; }
+        .nav-tab { color: rgba(255,255,255,0.34); text-decoration: none; font-size: 0.7rem; letter-spacing: 0.12em; transition: color 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.25s; border: 1px solid transparent; padding: 9px 14px; position: relative; overflow: hidden; background: transparent; }
+        .nav-tab::before, .nav-tab::after { content: ""; position: absolute; inset: 0; pointer-events: none; transition: transform 0.3s ease, opacity 0.3s ease; }
+        .nav-tab::before { border-top: 1px solid rgba(0,242,234,0.55); border-bottom: 1px solid rgba(0,242,234,0.55); transform: scaleX(0.2); opacity: 0; }
+        .nav-tab::after { border-left: 1px solid rgba(0,242,234,0.38); border-right: 1px solid rgba(0,242,234,0.38); transform: scaleY(0.2); opacity: 0; }
+        .nav-tab:hover, .nav-tab.active { color: #00f2ea; border-color: rgba(0,242,234,0.18); box-shadow: 0 0 18px rgba(0,242,234,0.08); transform: translateY(-1px); }
+        .nav-tab:hover::before, .nav-tab:hover::after, .nav-tab.active::before, .nav-tab.active::after { transform: scale(1); opacity: 1; }
+        .nav-tab-text { position: relative; z-index: 1; }
+        .nav-user { display: flex; align-items: center; gap: 16px; justify-self: end; }
+        #displayName { color: #00f2ea; font-size: 0.8rem; letter-spacing: 0.1em; }
+        .nav-link { color: rgba(255,255,255,0.3); font-size: 0.72rem; letter-spacing: 0.08em; cursor: pointer; border: none; background: none; font-family: inherit; transition: color 0.2s; }
+        .nav-link:hover { color: #ff4d6d; }
+        .main { max-width: 860px; margin: 0 auto; padding: 48px 24px; }
+        .section-title { font-size: 0.7rem; letter-spacing: 0.18em; color: rgba(255,255,255,0.34); margin-bottom: 16px; }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 26px;
+        }
+
+        .stat-card {
+            border: 1px solid rgba(0,242,234,0.14);
+            background: rgba(13,13,13,0.92);
+            padding: 20px 22px;
+        }
+
+        .stat-label {
+            font-size: 0.58rem;
+            letter-spacing: 0.16em;
+            color: rgba(255,255,255,0.28);
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 1.9rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        .stat-value.members { color: #00f2ea; }
+        .stat-value.cf { color: #f7941e; }
+        .stat-value.lc { color: #ffa116; }
+
+        .board-shell {
+            border: 1px solid rgba(0,242,234,0.14);
+            background: rgba(13,13,13,0.92);
+            padding: 12px 0 0;
+        }
+
+        .board-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .board-table th {
+            font-size: 0.58rem;
+            letter-spacing: 0.15em;
+            color: rgba(255,255,255,0.25);
+            text-align: left;
+            padding: 10px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .board-table th:last-child,
+        .board-table td:last-child { text-align: right; }
+
+        .board-table td {
+            padding: 16px 20px;
+            font-size: 0.78rem;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+        .rank {
+            color: #00f2ea;
+            width: 70px;
+        }
+
+        .cf-points { color: #f7941e; }
+        .lc-points { color: #ffa116; }
+        .total-points { color: #00f2ea; }
+
+        .me-row {
+            background: rgba(0,242,234,0.05);
+        }
+
+        .me-name {
+            color: #00f2ea;
+        }
+
+        .empty {
+            padding: 24px 20px;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 0.08em;
+            font-size: 0.72rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar" id="appNavbar"></nav>
+    <div class="main">
+        <div class="section-title">// LEADERBOARD</div>
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">// TOTAL_MEMBERS</div>
+                <div class="stat-value members" id="statMembers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">// TOP_CF_PTS</div>
+                <div class="stat-value cf" id="statTopCF">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">// MAX_LC_PTS</div>
+                <div class="stat-value lc" id="statMaxLC">-</div>
+            </div>
+        </div>
+        <div class="board-shell">
+            <table class="board-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>HANDLE</th>
+                        <th>CF PTS</th>
+                        <th>LC PTS</th>
+                        <th>TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody id="lbBody">
+                    <tr><td colspan="5" class="empty">// LOADING LEADERBOARD...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="./lib/supabase.js"></script>
+    <script src="./lib/app-shell.js"></script>
+    <script>
+        async function init() {
+            const appState = await bootstrapAppShell("leaderboard");
+            if (!appState) return;
+
+            const myId = appState.user.id;
+            const { data: scores, error } = await supabase.functions.invoke("get-leaderboard");
+
+            if (error || !scores || scores.length === 0) {
+                document.getElementById("lbBody").innerHTML =
+                    `<tr><td colspan="5" class="empty">// NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
+                return;
+            }
+
+            document.getElementById("statMembers").textContent = scores.length;
+            document.getElementById("statTopCF").textContent = Math.max(...scores.map(s => s.codeforces_points || 0));
+            document.getElementById("statMaxLC").textContent = Math.max(...scores.map(s => s.leetcode_points || 0));
+
+            document.getElementById("lbBody").innerHTML = scores.map((entry, index) => {
+                const isMe = entry.user_id === myId;
+                const rowClass = isMe ? "me-row" : "";
+                const nameClass = isMe ? "me-name" : "";
+
+                return `
+                    <tr class="${rowClass}">
+                        <td class="rank">${String(index + 1).padStart(2, "0")}${isMe ? " <" : ""}</td>
+                        <td class="${nameClass}">${entry.handle || entry.full_name || "-"}</td>
+                        <td class="cf-points">${entry.codeforces_points ?? 0}</td>
+                        <td class="lc-points">${entry.leetcode_points ?? 0}</td>
+                        <td class="total-points">${entry.total_points ?? 0}</td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        init();
+    </script>
+</body>
+</html>

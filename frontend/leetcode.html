@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LeetCode Data — CP Leaderboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <script>
+        if (sessionStorage.getItem("nav_loader") === "1") {
+            document.documentElement.classList.add("nav-pending");
+        }
+    </script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html.nav-pending body > *:not(#navTransitionOverlay):not(#topLoader) { opacity: 0 !important; }
+        body { background: #050505; color: white; font-family: "Fira Code", monospace; min-height: 100vh; }
+        .navbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 18px 40px; border-bottom: 1px solid rgba(0,242,234,0.12); background: rgba(5,5,5,0.8); gap: 24px; }
+        .nav-logo { color: #00f2ea; letter-spacing: 0.12em; font-size: 0.9rem; flex-shrink: 0; justify-self: start; }
+        .nav-menu { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: center; }
+        .nav-tab { color: rgba(255,255,255,0.34); text-decoration: none; font-size: 0.7rem; letter-spacing: 0.12em; transition: color 0.25s, border-color 0.25s, box-shadow 0.25s, transform 0.25s; border: 1px solid transparent; padding: 9px 14px; position: relative; overflow: hidden; background: transparent; }
+        .nav-tab::before, .nav-tab::after { content: ""; position: absolute; inset: 0; pointer-events: none; transition: transform 0.3s ease, opacity 0.3s ease; }
+        .nav-tab::before { border-top: 1px solid rgba(0,242,234,0.55); border-bottom: 1px solid rgba(0,242,234,0.55); transform: scaleX(0.2); opacity: 0; }
+        .nav-tab::after { border-left: 1px solid rgba(0,242,234,0.38); border-right: 1px solid rgba(0,242,234,0.38); transform: scaleY(0.2); opacity: 0; }
+        .nav-tab:hover, .nav-tab.active { color: #00f2ea; border-color: rgba(0,242,234,0.18); box-shadow: 0 0 18px rgba(0,242,234,0.08); transform: translateY(-1px); }
+        .nav-tab:hover::before, .nav-tab:hover::after, .nav-tab.active::before, .nav-tab.active::after { transform: scale(1); opacity: 1; }
+        .nav-tab-text { position: relative; z-index: 1; }
+        .nav-user { display: flex; align-items: center; gap: 16px; justify-self: end; }
+        #displayName { color: #00f2ea; font-size: 0.8rem; letter-spacing: 0.1em; }
+        .nav-link { color: rgba(255,255,255,0.3); font-size: 0.72rem; letter-spacing: 0.08em; cursor: pointer; border: none; background: none; font-family: inherit; transition: color 0.2s; }
+        .nav-link:hover { color: #ff4d6d; }
+        .main { max-width: 860px; margin: 0 auto; padding: 48px 24px; }
+        .section-title { font-size: 0.7rem; letter-spacing: 0.18em; color: rgba(255,255,255,0.34); margin-bottom: 16px; }
+        .placeholder { border: 1px solid rgba(255,161,22,0.18); background: rgba(13,13,13,0.92); padding: 28px 32px; color: rgba(255,255,255,0.6); letter-spacing: 0.06em; }
+    </style>
+</head>
+<body>
+    <nav class="navbar" id="appNavbar"></nav>
+    <div class="main">
+        <div class="section-title">// LEETCODE_DATA</div>
+        <div class="placeholder">LeetCode data page shell is ready.</div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="./lib/supabase.js"></script>
+    <script src="./lib/app-shell.js"></script>
+    <script>
+        bootstrapAppShell("leetcode");
+    </script>
+</body>
+</html>
