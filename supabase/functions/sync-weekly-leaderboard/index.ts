@@ -8,41 +8,22 @@ serve(async () => {
   );
 
   try {
-    const now = new Date();
+    const { weekStart, weekEnd, weekStartDate, weekEndDate } = getCurrentWeekRange();
 
-    // 🔹 Calculate current week (Sunday → Saturday)
-    const dayOfWeek = now.getUTCDay(); // 0 = Sunday
-    const weekStart = new Date(now);
-    weekStart.setUTCDate(now.getUTCDate() - dayOfWeek);
-    weekStart.setUTCHours(0, 0, 0, 0);
-
-    const weekEnd = new Date(weekStart);
-    weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
-    weekEnd.setUTCHours(23, 59, 59, 999);
-
-    // 🔹 Get submissions within this week (ALL platforms)
     const { data: submissions, error } = await supabase
       .from("submissions")
-      .select("user_id, problems(rating)")
+      .select("user_id, platform, problems(rating, difficulty)")
       .gte("solved_at", weekStart.toISOString())
       .lte("solved_at", weekEnd.toISOString());
 
     if (error) throw error;
 
-    // 🔹 Aggregate per user
     const userPointsMap: Record<string, number> = {};
 
     submissions?.forEach((sub: any) => {
       const userId = sub.user_id;
-      const rating = sub.problems?.rating;
-
-      if (!rating) return;
-
-      let points = 0;
-
-      if (rating < 900) points = 100;
-      else if (rating <= 1000) points = 200;
-      else points = 400;
+      const points = getWeeklyPoints(sub.platform, sub.problems);
+      if (!points) return;
 
       if (!userPointsMap[userId]) {
         userPointsMap[userId] = 0;
@@ -51,27 +32,35 @@ serve(async () => {
       userPointsMap[userId] += points;
     });
 
-    // 🔹 Upsert weekly scores
-    for (const userId in userPointsMap) {
-      await supabase.from("weekly_scores").upsert(
-        {
-          user_id: userId,
-          week_start: weekStart.toISOString(),
-          week_end: weekEnd.toISOString(),
-          total_points: userPointsMap[userId],
-          created_at: new Date().toISOString(),
-        },
-        {
-          onConflict: "user_id,week_start"
-        }
-      );
+    const { error: clearError } = await supabase
+      .from("weekly_scores")
+      .delete()
+      .eq("week_start", weekStartDate)
+      .eq("week_end", weekEndDate);
+
+    if (clearError) throw clearError;
+
+    const rows = Object.entries(userPointsMap).map(([user_id, total_points]) => ({
+      user_id,
+      week_start: weekStartDate,
+      week_end: weekEndDate,
+      total_points,
+      created_at: new Date().toISOString(),
+    }));
+
+    if (rows.length > 0) {
+      const { error: insertError } = await supabase
+        .from("weekly_scores")
+        .insert(rows);
+
+      if (insertError) throw insertError;
     }
 
     return new Response(
       JSON.stringify({
-        week_start: weekStart,
-        week_end: weekEnd,
-        usersSynced: Object.keys(userPointsMap).length,
+        week_start: weekStartDate,
+        week_end: weekEndDate,
+        usersSynced: rows.length,
       }),
       { headers: { "Content-Type": "application/json" } }
     );
@@ -83,3 +72,44 @@ serve(async () => {
     );
   }
 });
+
+function getCurrentWeekRange() {
+  const now = new Date();
+  const dayOfWeek = now.getUTCDay();
+
+  const weekStart = new Date(now);
+  weekStart.setUTCDate(now.getUTCDate() - dayOfWeek);
+  weekStart.setUTCHours(0, 0, 0, 0);
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setUTCDate(weekStart.getUTCDate() + 6);
+  weekEnd.setUTCHours(23, 59, 59, 999);
+
+  return {
+    weekStart,
+    weekEnd,
+    weekStartDate: weekStart.toISOString().slice(0, 10),
+    weekEndDate: weekEnd.toISOString().slice(0, 10),
+  };
+}
+
+function getWeeklyPoints(platform: string | null | undefined, problem: any) {
+  if (!platform || !problem) return 0;
+
+  if (platform === "codeforces") {
+    const rating = problem.rating;
+    if (!rating) return 0;
+    if (rating < 900) return 100;
+    if (rating <= 1000) return 200;
+    return 400;
+  }
+
+  if (platform === "leetcode") {
+    const difficulty = problem.difficulty;
+    if (difficulty === "Easy") return 100;
+    if (difficulty === "Medium") return 200;
+    if (difficulty === "Hard") return 400;
+  }
+
+  return 0;
+}

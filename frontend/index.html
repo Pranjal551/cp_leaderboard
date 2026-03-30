@@ -180,6 +180,47 @@
 
         .mock-body { padding: 16px; }
 
+        .mock-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .mock-toggle-group {
+            display: inline-flex;
+            gap: 4px;
+            padding: 4px;
+            border: 1px solid rgba(0,242,234,0.18);
+            background: rgba(0,242,234,0.04);
+        }
+
+        .mock-toggle-btn {
+            border: none;
+            background: transparent;
+            color: rgba(255,255,255,0.42);
+            padding: 8px 14px;
+            font-family: "Fira Code", monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.14em;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        }
+
+        .mock-toggle-btn.active {
+            background: rgba(0,242,234,0.16);
+            color: var(--cyan);
+            box-shadow: inset 0 0 0 1px rgba(0,242,234,0.18);
+        }
+
+        .mock-mode-copy {
+            font-size: 0.58rem;
+            letter-spacing: 0.12em;
+            color: rgba(255,255,255,0.32);
+        }
+
         /* stat chips */
         .mock-stats {
             display: grid;
@@ -598,26 +639,33 @@
             </div>
 
             <div class="mock-body">
+                <div class="mock-toolbar">
+                    <div class="mock-toggle-group" role="tablist" aria-label="Leaderboard preview mode">
+                        <button class="mock-toggle-btn active" id="overallToggle" type="button">OVERALL</button>
+                        <button class="mock-toggle-btn" id="weeklyToggle" type="button">WEEKLY</button>
+                    </div>
+                    <div class="mock-mode-copy" id="mockModeCopy">// LIFETIME_LEADERBOARD</div>
+                </div>
 
                 <!-- Stat chips -->
                 <div class="mock-stats">
                     <div class="mock-stat">
-                        <div class="mock-stat-label">// TOTAL_MEMBERS</div>
+                        <div class="mock-stat-label" id="statLabel1">// TOTAL_MEMBERS</div>
                         <div id="statMembers" style="font-size:1.1rem;font-weight:700;color:#00f2ea;margin-top:4px;">—</div>
                     </div>
                     <div class="mock-stat">
-                        <div class="mock-stat-label">// TOP_CF_PTS</div>
+                        <div class="mock-stat-label" id="statLabel2">// TOP_CF_PTS</div>
                         <div id="statTopCF" style="font-size:1.1rem;font-weight:700;color:#a855f7;margin-top:4px;">—</div>
                     </div>
                     <div class="mock-stat">
-                        <div class="mock-stat-label">// MAX_LC_PTS</div>
+                        <div class="mock-stat-label" id="statLabel3">// MAX_LC_PTS</div>
                         <div id="statMaxLC" style="font-size:1.1rem;font-weight:700;color:#f7941e;margin-top:4px;">—</div>
                     </div>
                 </div>
 
                 <!-- Live leaderboard -->
                 <table class="mock-table">
-                    <thead>
+                    <thead id="lbHead">
                         <tr>
                             <th>#</th>
                             <th>HANDLE</th>
@@ -992,9 +1040,184 @@
             }).join('');
         }
 
+        const leaderboardPreviewState = {
+            activeMode: 'overall',
+            overall: [],
+            weekly: [],
+            weeklyMeta: null,
+            myId: null
+        };
+
+        async function loadLeaderboardPreview() {
+            const { data: { user: me } } = await supabase.auth.getUser();
+            leaderboardPreviewState.myId = me?.id || null;
+
+            const [
+                { data: overallScores, error: overallError },
+                { data: weeklyPayload, error: weeklyError }
+            ] = await Promise.all([
+                supabase.functions.invoke('get-leaderboard'),
+                supabase.functions.invoke('get-weekly-leaderboard')
+            ]);
+
+            leaderboardPreviewState.overall = overallError || !Array.isArray(overallScores)
+                ? []
+                : overallScores;
+            leaderboardPreviewState.weekly = weeklyError || !Array.isArray(weeklyPayload?.leaderboard)
+                ? []
+                : weeklyPayload.leaderboard;
+            leaderboardPreviewState.weeklyMeta = weeklyPayload
+                ? {
+                    week_start: weeklyPayload.week_start || null,
+                    week_end: weeklyPayload.week_end || null
+                }
+                : null;
+
+            renderLeaderboardPreview();
+        }
+
+        function renderLeaderboardPreview() {
+            const isWeekly = leaderboardPreviewState.activeMode === 'weekly';
+            const scores = isWeekly ? leaderboardPreviewState.weekly : leaderboardPreviewState.overall;
+            const thead = document.getElementById('lbHead');
+            const tbody = document.getElementById('lbBody');
+
+            document.getElementById('overallToggle').classList.toggle('active', !isWeekly);
+            document.getElementById('weeklyToggle').classList.toggle('active', isWeekly);
+
+            if (isWeekly) {
+                renderWeeklyPreview(thead, tbody, scores);
+                return;
+            }
+
+            renderOverallPreview(thead, tbody, scores);
+        }
+
+        function renderOverallPreview(thead, tbody, scores) {
+            document.getElementById('mockModeCopy').textContent = '// LIFETIME_LEADERBOARD';
+            document.getElementById('statLabel1').textContent = '// TOTAL_MEMBERS';
+            document.getElementById('statLabel2').textContent = '// TOP_CF_PTS';
+            document.getElementById('statLabel3').textContent = '// MAX_LC_PTS';
+            document.getElementById('statMembers').textContent = scores.length || '--';
+            document.getElementById('statTopCF').textContent = scores.length
+                ? Math.max(...scores.map(s => s.codeforces_points || 0))
+                : '--';
+            document.getElementById('statMaxLC').textContent = scores.length
+                ? Math.max(...scores.map(s => s.leetcode_points || 0))
+                : '--';
+
+            thead.innerHTML = `
+                <tr>
+                    <th>#</th>
+                    <th>HANDLE</th>
+                    <th>CF PTS</th>
+                    <th>LC PTS</th>
+                    <th style="text-align:right">TOTAL</th>
+                </tr>
+            `;
+
+            if (!scores.length) {
+                tbody.innerHTML =
+                    `<tr><td colspan="5" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = scores.map((s, i) => {
+                const isMe = s.user_id === leaderboardPreviewState.myId;
+                const rank = String(i + 1).padStart(2, '0');
+                const name = s.handle || s.full_name || '-';
+                const cf = s.codeforces_points ?? '-';
+                const lc = s.leetcode_points ?? '-';
+                const tot = s.total_points ?? '-';
+                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
+                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
+                return `<tr style="${rowStyle}">
+                    <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
+                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
+                    <td style="color:#f7941e">${cf}</td>
+                    <td style="color:#ffa116">${lc}</td>
+                    <td style="color:#00f2ea;text-align:right">${tot}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderWeeklyPreview(thead, tbody, scores) {
+            const weekStart = leaderboardPreviewState.weeklyMeta?.week_start || null;
+            const weekEnd = leaderboardPreviewState.weeklyMeta?.week_end || null;
+            const weekRange = formatWeekRange(weekStart, weekEnd);
+
+            document.getElementById('mockModeCopy').textContent =
+                weekRange ? `// ${weekRange}` : '// CURRENT_WEEK';
+            document.getElementById('statLabel1').textContent = '// WEEKLY_MEMBERS';
+            document.getElementById('statLabel2').textContent = '// TOP_WEEKLY_PTS';
+            document.getElementById('statLabel3').textContent = '// WEEK_WINDOW';
+            document.getElementById('statMembers').textContent = scores.length || '--';
+            document.getElementById('statTopCF').textContent = scores.length
+                ? Math.max(...scores.map(s => s.total_points || 0))
+                : '--';
+            document.getElementById('statMaxLC').textContent = weekRange || '--';
+
+            thead.innerHTML = `
+                <tr>
+                    <th>#</th>
+                    <th>HANDLE</th>
+                    <th style="text-align:right">WEEKLY PTS</th>
+                </tr>
+            `;
+
+            if (!scores.length) {
+                tbody.innerHTML =
+                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO WEEKLY DATA YET</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = scores.map((s, i) => {
+                const isMe = s.user_id === leaderboardPreviewState.myId;
+                const rank = String(i + 1).padStart(2, '0');
+                const name = s.handle || s.full_name || '-';
+                const points = s.total_points ?? '-';
+                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
+                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
+                return `<tr style="${rowStyle}">
+                    <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
+                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
+                    <td style="color:#00f2ea;text-align:right">${points}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function formatWeekRange(start, end) {
+            if (!start || !end) return '';
+
+            const startDate = new Date(`${start}T00:00:00`);
+            const endDate = new Date(`${end}T00:00:00`);
+            const sameMonth = startDate.getMonth() === endDate.getMonth();
+            const startLabel = startDate.toLocaleDateString(undefined, {
+                month: 'short',
+                day: 'numeric'
+            }).toUpperCase();
+            const endOptions = { day: 'numeric' };
+            if (!sameMonth) {
+                endOptions.month = 'short';
+            }
+            const endLabel = endDate.toLocaleDateString(undefined, endOptions).toUpperCase();
+
+            return `${startLabel} - ${endLabel}`;
+        }
+
         checkUser();
-        loadLeaderboard();
+        loadLeaderboardPreview();
         updateAuthModeUI();
+
+        document.getElementById('overallToggle').addEventListener('click', () => {
+            leaderboardPreviewState.activeMode = 'overall';
+            renderLeaderboardPreview();
+        });
+
+        document.getElementById('weeklyToggle').addEventListener('click', () => {
+            leaderboardPreviewState.activeMode = 'weekly';
+            renderLeaderboardPreview();
+        });
 
         // Periodic glitch trigger
         (function scheduleGlitch() {

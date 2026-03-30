@@ -154,6 +154,7 @@ window.bootstrapAppShell = async function bootstrapAppShell(activePage) {
   const navItems = [
     { id: "profile", label: "PROFILE", href: "./dashboard.html", show: true },
     { id: "leaderboard", label: "LEADERBOARD", href: "./leaderboard.html", show: true },
+    { id: "weekly", label: "WEEKLY", href: "./weekly.html", show: true },
     { id: "codeforces", label: "CODEFORCES DATA", href: "./codeforces.html", show: hasCodeforces },
     { id: "leetcode", label: "LEETCODE DATA", href: "./leetcode.html", show: hasLeetcode },
   ].filter((item) => item.show);
