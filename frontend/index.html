@@ -216,9 +216,28 @@
         }
 
         .mock-mode-copy {
-            font-size: 0.58rem;
-            letter-spacing: 0.12em;
-            color: rgba(255,255,255,0.32);
+            font-size: 0.78rem;
+            letter-spacing: 0.16em;
+            color: rgba(255,255,255,0.4);
+            padding: 0;
+            border: none;
+            background: transparent;
+        }
+
+        .mock-mode-copy.weekly {
+            box-shadow: none;
+        }
+
+        .mock-mode-prefix {
+            color: rgba(255,255,255,0.38);
+        }
+
+        .mock-mode-date {
+            color: var(--cyan);
+            font-size: 0.98rem;
+            font-weight: 700;
+            letter-spacing: 0.22em;
+            text-shadow: 0 0 16px rgba(0,242,234,0.22);
         }
 
         /* stat chips */
@@ -254,7 +273,7 @@
         .mock-table { width: 100%; border-collapse: collapse; }
 
         .mock-table th {
-            font-size: 0.55rem;
+            font-size: 0.62rem;
             letter-spacing: 0.15em;
             color: rgba(255,255,255,0.25);
             text-align: left;
@@ -267,11 +286,11 @@
 
         .mock-table td {
             padding: 7px 8px;
-            font-size: 0.7rem;
+            font-size: 0.82rem;
             border-bottom: 1px solid rgba(255,255,255,0.03);
         }
 
-        .mock-rank { color: var(--cyan); font-size: 0.65rem; }
+        .mock-rank { color: var(--cyan); font-size: 0.78rem; }
 
         .mock-handle {
             display: inline-block;
@@ -644,7 +663,7 @@
                         <button class="mock-toggle-btn active" id="overallToggle" type="button">OVERALL</button>
                         <button class="mock-toggle-btn" id="weeklyToggle" type="button">WEEKLY</button>
                     </div>
-                    <div class="mock-mode-copy" id="mockModeCopy">// LIFETIME_LEADERBOARD</div>
+                    <div class="mock-mode-copy" id="mockModeCopy">// OVERALL_LEADERBOARD</div>
                 </div>
 
                 <!-- Stat chips -->
@@ -1052,6 +1071,10 @@
             const { data: { user: me } } = await supabase.auth.getUser();
             leaderboardPreviewState.myId = me?.id || null;
 
+            if (me) {
+                await window.syncUserLeaderboardData({ userId: me.id });
+            }
+
             const [
                 { data: overallScores, error: overallError },
                 { data: weeklyPayload, error: weeklyError }
@@ -1094,7 +1117,9 @@
         }
 
         function renderOverallPreview(thead, tbody, scores) {
-            document.getElementById('mockModeCopy').textContent = '// LIFETIME_LEADERBOARD';
+            const modeCopy = document.getElementById('mockModeCopy');
+            modeCopy.className = 'mock-mode-copy';
+            modeCopy.textContent = '// OVERALL_LEADERBOARD';
             document.getElementById('statLabel1').textContent = '// TOTAL_MEMBERS';
             document.getElementById('statLabel2').textContent = '// TOP_CF_PTS';
             document.getElementById('statLabel3').textContent = '// MAX_LC_PTS';
@@ -1145,9 +1170,10 @@
             const weekStart = leaderboardPreviewState.weeklyMeta?.week_start || null;
             const weekEnd = leaderboardPreviewState.weeklyMeta?.week_end || null;
             const weekRange = formatWeekRange(weekStart, weekEnd);
+            const modeCopy = document.getElementById('mockModeCopy');
 
-            document.getElementById('mockModeCopy').textContent =
-                weekRange ? `// ${weekRange}` : '// CURRENT_WEEK';
+            modeCopy.className = 'mock-mode-copy weekly';
+            modeCopy.innerHTML = '';
             document.getElementById('statLabel1').textContent = '// WEEKLY_MEMBERS';
             document.getElementById('statLabel2').textContent = '// TOP_WEEKLY_PTS';
             document.getElementById('statLabel3').textContent = '// WEEK_WINDOW';

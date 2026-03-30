@@ -277,7 +277,7 @@
             const appState = await bootstrapAppShell("profile");
             if (!appState) return;
 
-            const { user, accounts } = appState;
+            const { user, accounts, syncResult } = appState;
             const syncStatus = document.getElementById("syncStatus");
 
             const list = document.getElementById("handlesList");
@@ -299,30 +299,12 @@
             if (cfAcc) document.getElementById("cfHandle").textContent = cfAcc.handle;
             if (lcAcc) document.getElementById("lcHandle").textContent = lcAcc.handle;
 
-            const syncCalls = [];
-            if (cfAcc) {
-                syncCalls.push(
-                    supabase.functions.invoke("sync-codeforces", {
-                        body: { user_id: user.id }
-                    })
-                );
-            }
-            if (lcAcc) {
-                syncCalls.push(
-                    supabase.functions.invoke("sync-leetcode", {
-                        body: { user_id: user.id }
-                    })
-                );
-            }
-
-            if (syncCalls.length > 0) {
-                const results = await Promise.allSettled(syncCalls);
-                const failed = results.some(result => result.status === "rejected");
-                syncStatus.textContent = failed
-                    ? "// Partial refresh completed. Some platforms may still be stale."
-                    : "// Latest submissions synced.";
-            } else {
+            if (!accounts || accounts.length === 0) {
                 syncStatus.textContent = "// Link a platform to start syncing submissions.";
+            } else if (syncResult?.errors?.length) {
+                syncStatus.textContent = "// Partial refresh completed. Some platforms may still be stale.";
+            } else {
+                syncStatus.textContent = "// Latest submissions synced.";
             }
 
             const { data: scores } = await supabase
