@@ -1065,7 +1065,10 @@
         }
 
         async function maybeHandleSemesterTransition(userId) {
-            if (!isSemesterTransitionDate()) {
+            const isTransitionDay = isSemesterTransitionDate();
+            const isForcedOnce = window.peekForceSemesterTransitionPromptOnce?.() === true;
+
+            if (!isTransitionDay && !isForcedOnce) {
                 return;
             }
 
@@ -1081,8 +1084,12 @@
                 return;
             }
 
-            if (profile.last_semester_transition_prompt_on === today) {
+            if (!isForcedOnce && profile.last_semester_transition_prompt_on === today) {
                 return;
+            }
+
+            if (isForcedOnce) {
+                window.consumeForceSemesterTransitionPromptOnce?.();
             }
 
             const moveToNextSemester = await showSemesterTransitionPrompt();
