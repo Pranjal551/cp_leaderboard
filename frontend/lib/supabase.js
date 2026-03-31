@@ -17,6 +17,40 @@ window.supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 window.CP_APP_ORIGIN = resolveAppOrigin();
 window.CP_RESET_PASSWORD_URL = `${window.CP_APP_ORIGIN}/reset-password.html`;
 
+function getNavigationType() {
+  const navigationEntry = performance.getEntriesByType?.("navigation")?.[0];
+
+  if (navigationEntry?.type) {
+    return navigationEntry.type;
+  }
+
+  if (performance.navigation?.type === 1) {
+    return "reload";
+  }
+
+  return "navigate";
+}
+
+window.shouldAutoSync = function shouldAutoSync(mode = "app") {
+  if (mode === "login") {
+    return true;
+  }
+
+  if (getNavigationType() === "reload") {
+    return true;
+  }
+
+  if (mode === "landing") {
+    const landingKey = "cp_landing_sync_seen";
+    if (!sessionStorage.getItem(landingKey)) {
+      sessionStorage.setItem(landingKey, "1");
+      return true;
+    }
+  }
+
+  return false;
+};
+
 window.syncUserLeaderboardData = async function syncUserLeaderboardData(options = {}) {
   if (window.__cpSyncPromise) {
     return window.__cpSyncPromise;

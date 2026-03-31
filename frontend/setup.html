@@ -246,38 +246,16 @@
                 return;
             }
 
-            statusMsg.textContent = "// Linking accounts and syncing submissions...";
+            statusMsg.textContent = "// Accounts linked. Syncing submissions...";
 
-            const syncCalls = [];
+            const syncResult = await window.syncUserLeaderboardData({ userId: user.id });
 
-            if (active.cf) {
-                syncCalls.push(
-                    supabase.functions.invoke("sync-codeforces", {
-                        body: { user_id: user.id }
-                    }).then((result) => ({ platform: "codeforces", result }))
-                );
-            }
-
-            if (active.lc) {
-                syncCalls.push(
-                    supabase.functions.invoke("sync-leetcode", {
-                        body: { user_id: user.id }
-                    }).then((result) => ({ platform: "leetcode", result }))
-                );
-            }
-
-            const syncResults = await Promise.allSettled(syncCalls);
-            const failedSync = syncResults.find((entry) => {
-                if (entry.status === "rejected") return true;
-                return !!entry.value.result?.error;
-            });
-
-            if (failedSync) {
-                statusMsg.textContent = "// Account linked, but sync failed. Please try again.";
+            if (syncResult?.errors?.length) {
+                statusMsg.textContent = "// Accounts linked, but sync failed. Please try refreshing once.";
                 return;
             }
 
-            statusMsg.textContent = "// Sync complete. Redirecting...";
+            statusMsg.textContent = "// Accounts linked and synced. Redirecting...";
 
             window.location.href = "./dashboard.html";
         }

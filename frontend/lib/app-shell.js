@@ -1,8 +1,4 @@
 window.logout = async function logout() {
-  try {
-    await window.syncUserLeaderboardData();
-  } catch (_) {}
-
   await supabase.auth.signOut();
   window.location.href = "./index.html";
 };
@@ -144,7 +140,9 @@ window.bootstrapAppShell = async function bootstrapAppShell(activePage) {
     return null;
   }
 
-  const syncResult = await window.syncUserLeaderboardData({ userId: user.id });
+  const syncResult = window.shouldAutoSync("app")
+    ? await window.syncUserLeaderboardData({ userId: user.id })
+    : null;
 
   const [{ data: profile }, { data: accounts }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", user.id).single(),

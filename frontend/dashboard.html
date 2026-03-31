@@ -303,8 +303,10 @@
                 syncStatus.textContent = "// Link a platform to start syncing submissions.";
             } else if (syncResult?.errors?.length) {
                 syncStatus.textContent = "// Partial refresh completed. Some platforms may still be stale.";
-            } else {
+            } else if (syncResult) {
                 syncStatus.textContent = "// Latest submissions synced.";
+            } else {
+                syncStatus.textContent = "// Showing current stored data.";
             }
 
             const { data: scores } = await supabase

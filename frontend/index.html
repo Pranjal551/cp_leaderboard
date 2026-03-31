@@ -890,6 +890,7 @@
             if (isLogin) {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) { alert(error.message); return; }
+                await window.syncUserLeaderboardData({ userId: data.user.id });
                 // afterLogin will pick up any pending profile data from localStorage
                 await afterLogin(data.user);
 
@@ -912,6 +913,7 @@
                     }
                 });
                 if (error) {
+                    await window.syncUserLeaderboardData({ userId: data.user.id });
                     localStorage.removeItem("pending_profile");
                     alert(error.message);
                     return;
@@ -1071,7 +1073,7 @@
             const { data: { user: me } } = await supabase.auth.getUser();
             leaderboardPreviewState.myId = me?.id || null;
 
-            if (me) {
+            if (me && window.shouldAutoSync('landing')) {
                 await window.syncUserLeaderboardData({ userId: me.id });
             }
 
