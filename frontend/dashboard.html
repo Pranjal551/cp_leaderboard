@@ -261,6 +261,22 @@
             </div>
         </div>
 
+        <div class="section-title">// QUESTIONS_SOLVED</div>
+        <div class="cards">
+            <div class="card">
+                <div class="card-value cf" id="cfSolvedCount">-</div>
+                <div class="card-sub">CODEFORCES</div>
+            </div>
+            <div class="card">
+                <div class="card-value lc" id="lcSolvedCount">-</div>
+                <div class="card-sub">LEETCODE</div>
+            </div>
+            <div class="card">
+                <div class="card-value total" id="totalSolvedCount">-</div>
+                <div class="card-sub">ALL PLATFORMS</div>
+            </div>
+        </div>
+
         <div class="section-title">// LINKED_PLATFORMS</div>
         <div class="handles-section" id="handlesList">
             <div class="empty">// Loading...</div>
@@ -279,6 +295,39 @@
 
             const { user, accounts, syncResult, syncPromise } = appState;
             const syncStatus = document.getElementById("syncStatus");
+
+            const applySolvedCounts = ({ cf = 0, lc = 0 }) => {
+                document.getElementById("cfSolvedCount").textContent = cf;
+                document.getElementById("lcSolvedCount").textContent = lc;
+                document.getElementById("totalSolvedCount").textContent = cf + lc;
+            };
+
+            const loadSolvedCounts = async () => {
+                const [
+                    { count: cfCount, error: cfCountError },
+                    { count: lcCount, error: lcCountError }
+                ] = await Promise.all([
+                    supabase
+                        .from("submissions")
+                        .select("id", { count: "exact", head: true })
+                        .eq("user_id", user.id)
+                        .eq("platform", "codeforces"),
+                    supabase
+                        .from("submissions")
+                        .select("id", { count: "exact", head: true })
+                        .eq("user_id", user.id)
+                        .eq("platform", "leetcode")
+                ]);
+
+                if (cfCountError || lcCountError) {
+                    return;
+                }
+
+                applySolvedCounts({
+                    cf: cfCount ?? 0,
+                    lc: lcCount ?? 0,
+                });
+            };
 
             const applyScores = (scores) => {
                 if (!scores) return;
@@ -331,6 +380,7 @@
                 .single();
 
             applyScores(scores);
+            await loadSolvedCounts();
             if (scores?.last_updated && !syncResult?.errors?.length && !syncPromise) {
                 syncStatus.textContent = `// Last synced: ${new Date(scores.last_updated).toLocaleString()}`;
             }
@@ -350,6 +400,7 @@
                     .single();
 
                 applyScores(refreshedScores);
+                await loadSolvedCounts();
                 if (refreshedScores?.last_updated) {
                     syncStatus.textContent = `// Last synced: ${new Date(refreshedScores.last_updated).toLocaleString()}`;
                 }
