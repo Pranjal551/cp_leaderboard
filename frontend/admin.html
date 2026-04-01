@@ -113,6 +113,43 @@
       flex-wrap: wrap;
     }
 
+    .search-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 8px 10px;
+      font-family: "Fira Code", monospace;
+      font-size: 0.72rem;
+      min-width: 220px;
+    }
+
+    .filter-select {
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 8px 10px;
+      font-family: "Fira Code", monospace;
+      font-size: 0.72rem;
+      min-width: 140px;
+    }
+
+    .filter-select option {
+      background: #0b1f3a;
+      color: #d7ecec;
+    }
+
+    .filter-select option:checked {
+      background: #153a72;
+      color: #ffffff;
+    }
+
     .table-wrap {
       overflow-x: auto;
       border: 1px solid rgba(255,255,255,0.08);
@@ -175,6 +212,12 @@
       <div class="actions">
         <button class="btn" id="refreshBtn" type="button">REFRESH DATA</button>
         <button class="btn" id="logoutBtn" type="button">LOGOUT</button>
+        <select id="semesterFilter" class="filter-select" aria-label="Filter by semester">
+          <option value="all">ALL SEMESTERS</option>
+        </select>
+        <div class="search-wrap">
+          <input id="searchInput" class="search-input" type="text" placeholder="Search by name or handle" />
+        </div>
         <div class="meta" id="weekLabel">// WEEK: --</div>
       </div>
       <div class="status" id="dashboardStatus"></div>
@@ -214,6 +257,14 @@
     const dashboardStatus = document.getElementById("dashboardStatus");
     const studentsBody = document.getElementById("studentsBody");
     const weekLabel = document.getElementById("weekLabel");
+    const semesterFilter = document.getElementById("semesterFilter");
+    const searchInput = document.getElementById("searchInput");
+
+    const adminState = {
+      payload: null,
+      selectedSemester: "all",
+      searchQuery: "",
+    };
 
     function getSessionToken() {
       return localStorage.getItem(ADMIN_TOKEN_KEY);
@@ -274,9 +325,70 @@
       loginStatus.textContent = message;
     }
 
-    function renderStudents(payload) {
+    function normalizeSemester(value) {
+      if (value === null || value === undefined || value === "") {
+        return "-";
+      }
+
+      return String(value);
+    }
+
+    function populateSemesterFilter(students) {
+      const semesterValues = Array.from(
+        new Set(students.map((student) => normalizeSemester(student.semester)))
+      ).sort((a, b) => {
+        if (a === "-") return 1;
+        if (b === "-") return -1;
+        return Number(a) - Number(b);
+      });
+
+      semesterFilter.innerHTML = '<option value="all">ALL SEMESTERS</option>';
+
+      semesterValues.forEach((semester) => {
+        const option = document.createElement("option");
+        option.value = semester;
+        option.textContent = semester === "-" ? "NO SEMESTER" : `SEM ${semester}`;
+        semesterFilter.appendChild(option);
+      });
+
+      if (
+        adminState.selectedSemester !== "all" &&
+        !semesterValues.includes(adminState.selectedSemester)
+      ) {
+        adminState.selectedSemester = "all";
+      }
+
+      semesterFilter.value = adminState.selectedSemester;
+    }
+
+    function getFilteredStudents(students) {
+      const semesterFiltered = adminState.selectedSemester === "all"
+        ? students
+        : students.filter(
+            (student) => normalizeSemester(student.semester) === adminState.selectedSemester
+          );
+
+      const query = adminState.searchQuery.trim().toLowerCase();
+      if (!query) {
+        return semesterFiltered;
+      }
+      return semesterFiltered.filter((student) => {
+        const fullName = String(student.full_name || "").toLowerCase();
+        const cfHandle = String(student.codeforces_handle || "").toLowerCase();
+        const lcHandle = String(student.leetcode_handle || "").toLowerCase();
+        return (
+          fullName.includes(query) ||
+          cfHandle.includes(query) ||
+          lcHandle.includes(query)
+        );
+      });
+    }
+
+    function renderStudents() {
+      const payload = adminState.payload;
       const students = payload?.students || [];
       const latestWeek = payload?.latest_week;
+      const filteredStudents = getFilteredStudents(students);
 
       if (latestWeek?.week_start && latestWeek?.week_end) {
         weekLabel.textContent = `// WEEK: ${latestWeek.week_start} -> ${latestWeek.week_end}`;
@@ -284,12 +396,12 @@
         weekLabel.textContent = "// WEEK: NO WEEKLY DATA";
       }
 
-      if (students.length === 0) {
-        studentsBody.innerHTML = '<tr><td colspan="9">// NO STUDENTS FOUND</td></tr>';
+      if (filteredStudents.length === 0) {
+        studentsBody.innerHTML = '<tr><td colspan="9">// NO STUDENTS FOUND FOR THIS SEMESTER</td></tr>';
         return;
       }
 
-      studentsBody.innerHTML = students.map((student, index) => {
+      studentsBody.innerHTML = filteredStudents.map((student, index) => {
         const name = escapeHtml(student.full_name || "-");
         const semester = escapeHtml(student.semester ?? "-");
         const cfHandle = escapeHtml(student.codeforces_handle || "-");
@@ -327,13 +439,25 @@
           token,
         });
 
+        adminState.payload = payload;
+        populateSemesterFilter(payload.students || []);
         dashboardStatus.textContent = `// Loaded ${payload.total_students ?? 0} student records.`;
-        renderStudents(payload);
+        renderStudents();
       } catch (error) {
         clearSession();
         showLogin(`// ${error.message}`);
       }
     }
+
+    semesterFilter.addEventListener("change", () => {
+      adminState.selectedSemester = semesterFilter.value;
+      renderStudents();
+    });
+
+    searchInput.addEventListener("input", () => {
+      adminState.searchQuery = searchInput.value;
+      renderStudents();
+    });
 
     document.getElementById("loginBtn").addEventListener("click", async () => {
       const adminId = document.getElementById("adminId").value.trim();
