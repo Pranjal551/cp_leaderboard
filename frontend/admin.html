@@ -155,6 +155,86 @@
       border: 1px solid rgba(255,255,255,0.08);
     }
 
+    .student-row {
+      cursor: pointer;
+      transition: background 0.16s ease;
+    }
+
+    .student-row:hover {
+      background: rgba(0,242,234,0.08);
+    }
+
+    .student-row.active {
+      background: rgba(0,242,234,0.14);
+    }
+
+    .submissions-panel {
+      margin-top: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.02);
+      padding: 12px;
+    }
+
+    .submissions-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .submissions-title {
+      color: var(--cyan);
+      font-size: 0.74rem;
+      letter-spacing: 0.08em;
+    }
+
+    .submissions-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .submissions-col {
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.2);
+      padding: 10px;
+      min-height: 120px;
+    }
+
+    .submissions-col h4 {
+      margin: 0 0 8px;
+      font-size: 0.72rem;
+      color: var(--cyan);
+      letter-spacing: 0.08em;
+    }
+
+    .submissions-list {
+      max-height: 260px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+      font-size: 0.69rem;
+      color: var(--muted);
+    }
+
+    .submission-item {
+      border-bottom: 1px dashed rgba(255,255,255,0.1);
+      padding-bottom: 6px;
+    }
+
+    .submission-name {
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+
+    .submission-meta {
+      color: var(--muted);
+      font-size: 0.66rem;
+      line-height: 1.45;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -184,6 +264,10 @@
     @media (max-width: 740px) {
       .shell {
         padding: 14px;
+      }
+
+      .submissions-grid {
+        grid-template-columns: 1fr;
       }
     }
   </style>
@@ -241,6 +325,24 @@
           </tbody>
         </table>
       </div>
+
+      <div class="submissions-panel hidden" id="submissionsPanel">
+        <div class="submissions-head">
+          <div class="submissions-title" id="submissionsTitle">// SELECT A STUDENT TO VIEW SUBMISSIONS</div>
+          <div class="meta" id="submissionsMeta"></div>
+        </div>
+        <div class="status" id="submissionsStatus"></div>
+        <div class="submissions-grid">
+          <div class="submissions-col">
+            <h4>CODEFORCES SUBMISSIONS</h4>
+            <div id="cfSubmissionsList" class="submissions-list"></div>
+          </div>
+          <div class="submissions-col">
+            <h4>LEETCODE SUBMISSIONS</h4>
+            <div id="lcSubmissionsList" class="submissions-list"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -259,11 +361,19 @@
     const weekLabel = document.getElementById("weekLabel");
     const semesterFilter = document.getElementById("semesterFilter");
     const searchInput = document.getElementById("searchInput");
+    const submissionsPanel = document.getElementById("submissionsPanel");
+    const submissionsTitle = document.getElementById("submissionsTitle");
+    const submissionsMeta = document.getElementById("submissionsMeta");
+    const submissionsStatus = document.getElementById("submissionsStatus");
+    const cfSubmissionsList = document.getElementById("cfSubmissionsList");
+    const lcSubmissionsList = document.getElementById("lcSubmissionsList");
 
     const adminState = {
       payload: null,
       selectedSemester: "all",
       searchQuery: "",
+      selectedUserId: null,
+      submissionsCache: {},
     };
 
     function getSessionToken() {
@@ -408,7 +518,7 @@
         const lcHandle = escapeHtml(student.leetcode_handle || "-");
 
         return `
-          <tr>
+          <tr class="student-row ${adminState.selectedUserId === student.user_id ? "active" : ""}" data-user-id="${student.user_id}">
             <td>${index + 1}</td>
             <td class="name-col">${name}</td>
             <td>${semester}</td>
@@ -421,6 +531,107 @@
           </tr>
         `;
       }).join("");
+
+      studentsBody.querySelectorAll(".student-row").forEach((row) => {
+        row.addEventListener("click", async () => {
+          const userId = row.getAttribute("data-user-id");
+          if (!userId) return;
+
+          const isSameUser = adminState.selectedUserId === userId;
+          const isPanelVisible = !submissionsPanel.classList.contains("hidden");
+
+          if (isSameUser && isPanelVisible) {
+            hideSubmissionsPanel();
+            return;
+          }
+
+          await loadUserSubmissions(userId);
+        });
+      });
+    }
+
+    function renderSubmissionList(listElement, items, platform) {
+      if (!items || items.length === 0) {
+        listElement.innerHTML = '<div class="submission-item">// NO SUBMISSIONS</div>';
+        return;
+      }
+
+      listElement.innerHTML = items.map((item) => {
+        const problemName = escapeHtml(item.problem_name || "Unknown problem");
+        const externalId = escapeHtml(item.external_problem_id || "-");
+        const solvedAt = item.solved_at
+          ? new Date(item.solved_at).toLocaleString()
+          : "-";
+
+        const ratingOrDifficulty = platform === "codeforces"
+          ? `Rating: ${item.rating ?? "-"}`
+          : `Difficulty: ${escapeHtml(item.difficulty || "-")}`;
+
+        return `
+          <div class="submission-item">
+            <div class="submission-name">${problemName}</div>
+            <div class="submission-meta">
+              ID: ${externalId}<br/>
+              ${ratingOrDifficulty}<br/>
+              Solved: ${escapeHtml(solvedAt)}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function hideSubmissionsPanel() {
+      adminState.selectedUserId = null;
+      submissionsPanel.classList.add("hidden");
+      submissionsStatus.textContent = "";
+      submissionsTitle.textContent = "// SELECT A STUDENT TO VIEW SUBMISSIONS";
+      submissionsMeta.textContent = "";
+      cfSubmissionsList.innerHTML = "";
+      lcSubmissionsList.innerHTML = "";
+      renderStudents();
+    }
+
+    async function loadUserSubmissions(userId) {
+      const token = getSessionToken();
+      if (!token) return;
+
+      adminState.selectedUserId = userId;
+      renderStudents();
+
+      submissionsPanel.classList.remove("hidden");
+      submissionsStatus.textContent = "// Loading submissions...";
+      cfSubmissionsList.innerHTML = "";
+      lcSubmissionsList.innerHTML = "";
+
+      if (adminState.submissionsCache[userId]) {
+        renderUserSubmissions(adminState.submissionsCache[userId]);
+        submissionsStatus.textContent = "// Showing cached submissions.";
+        return;
+      }
+
+      try {
+        const payload = await callFunction("admin-user-submissions", {
+          method: "POST",
+          body: { user_id: userId },
+          token,
+        });
+
+        adminState.submissionsCache[userId] = payload;
+        renderUserSubmissions(payload);
+        submissionsStatus.textContent = "// Submissions loaded.";
+      } catch (error) {
+        submissionsStatus.textContent = `// ${error.message}`;
+      }
+    }
+
+    function renderUserSubmissions(payload) {
+      const name = payload.full_name || "Unknown";
+      const semester = payload.semester ?? "-";
+      submissionsTitle.textContent = `// SUBMISSIONS: ${name} (SEM ${semester})`;
+      submissionsMeta.textContent = `// CF: ${payload.codeforces_handle || "-"} | LC: ${payload.leetcode_handle || "-"}`;
+
+      renderSubmissionList(cfSubmissionsList, payload.codeforces_submissions || [], "codeforces");
+      renderSubmissionList(lcSubmissionsList, payload.leetcode_submissions || [], "leetcode");
     }
 
     async function loadAdminData() {
@@ -440,6 +651,7 @@
         });
 
         adminState.payload = payload;
+        adminState.submissionsCache = {};
         populateSemesterFilter(payload.students || []);
         dashboardStatus.textContent = `// Loaded ${payload.total_students ?? 0} student records.`;
         renderStudents();
@@ -493,6 +705,7 @@
 
     document.getElementById("logoutBtn").addEventListener("click", () => {
       clearSession();
+      hideSubmissionsPanel();
       showLogin("// Logged out.");
     });
 

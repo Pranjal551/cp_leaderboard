@@ -497,3 +497,9 @@ enabled = true
 verify_jwt = false
 import_map = "./functions/admin-students-overview/deno.json"
 entrypoint = "./functions/admin-students-overview/index.ts"
+
+[functions.admin-user-submissions]
+enabled = true
+verify_jwt = false
+import_map = "./functions/admin-user-submissions/deno.json"
+entrypoint = "./functions/admin-user-submissions/index.ts"
