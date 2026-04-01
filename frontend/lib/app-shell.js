@@ -140,9 +140,10 @@ window.bootstrapAppShell = async function bootstrapAppShell(activePage) {
     return null;
   }
 
-  const syncResult = window.shouldAutoSync("app")
-    ? await window.syncUserLeaderboardData({ userId: user.id })
-    : null;
+  const shouldSyncNow = window.shouldAutoSync("app");
+  const syncPromise = shouldSyncNow
+    ? window.syncUserLeaderboardData({ userId: user.id })
+    : Promise.resolve(null);
 
   const [{ data: profile }, { data: accounts }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", user.id).single(),
@@ -216,5 +217,5 @@ window.bootstrapAppShell = async function bootstrapAppShell(activePage) {
     });
   }
 
-  return { user, profile, accounts: accounts || [], name, syncResult };
+  return { user, profile, accounts: accounts || [], name, syncResult: null, syncPromise };
 };

@@ -2,6 +2,8 @@
 const SUPABASE_URL = "https://pzrfvuckvmhuzyanqhra.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_4aXfr9YIQvHLnGMroTFBBQ_VLyHefA7";
 const PROD_APP_ORIGIN = "https://cp-leaderboard-pi.vercel.app";
+const APP_SYNC_SEEN_KEY = "cp_app_sync_seen";
+const LANDING_SYNC_SEEN_KEY = "cp_landing_sync_seen";
 
 function resolveAppOrigin() {
   const { hostname, origin } = window.location;
@@ -31,6 +33,118 @@ function getNavigationType() {
   return "navigate";
 }
 
+async function ensureActiveSession() {
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+  if (sessionError) {
+    return { ok: false, error: sessionError.message };
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = sessionData.session?.expires_at ?? 0;
+  const hasToken = !!sessionData.session?.access_token;
+  const shouldRefresh = !hasToken || expiresAt - now <= 30;
+
+  if (!shouldRefresh) {
+    return { ok: true, error: null };
+  }
+
+  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError || !refreshData.session?.access_token) {
+    return {
+      ok: false,
+      error: refreshError?.message || "No active session token for edge function calls.",
+    };
+  }
+
+  return { ok: true, error: null };
+}
+
+async function invokeProtectedFunction(functionName, body) {
+  const invokeOnce = async () => {
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token ?? null;
+
+    if (sessionError || !accessToken) {
+      return {
+        data: null,
+        error: {
+          message: sessionError?.message || "No active session token for edge function calls.",
+          status: 401,
+        },
+      };
+    }
+
+    let response;
+    try {
+      response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(body ?? {}),
+      });
+    } catch (networkError) {
+      return {
+        data: null,
+        error: {
+          message: networkError?.message || "Network error while invoking edge function.",
+          status: 0,
+        },
+      };
+    }
+
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {}
+
+    if (!response.ok) {
+      return {
+        data: null,
+        error: {
+          message:
+            payload?.error ||
+            payload?.message ||
+            `Edge function ${functionName} failed with ${response.status}.`,
+          status: response.status,
+        },
+      };
+    }
+
+    return {
+      data: payload,
+      error: null,
+    };
+  };
+
+  let result = await invokeOnce();
+  if (!result.error || result.error.status !== 401) {
+    return result;
+  }
+
+  // One retry after forcing a session refresh avoids transient 401s.
+  const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+  if (refreshError || !refreshData.session?.access_token) {
+    return result;
+  }
+
+  result = await invokeOnce();
+  return result;
+}
+
+window.markAutoSyncSeen = function markAutoSyncSeen(mode = "app") {
+  if (mode === "app") {
+    sessionStorage.setItem(APP_SYNC_SEEN_KEY, "1");
+    return;
+  }
+
+  if (mode === "landing") {
+    sessionStorage.setItem(LANDING_SYNC_SEEN_KEY, "1");
+  }
+};
+
 window.shouldAutoSync = function shouldAutoSync(mode = "app") {
   if (mode === "login") {
     return true;
@@ -40,12 +154,12 @@ window.shouldAutoSync = function shouldAutoSync(mode = "app") {
     return true;
   }
 
+  if (mode === "app") {
+    return !sessionStorage.getItem(APP_SYNC_SEEN_KEY);
+  }
+
   if (mode === "landing") {
-    const landingKey = "cp_landing_sync_seen";
-    if (!sessionStorage.getItem(landingKey)) {
-      sessionStorage.setItem(landingKey, "1");
-      return true;
-    }
+    return !sessionStorage.getItem(LANDING_SYNC_SEEN_KEY);
   }
 
   return false;
@@ -95,38 +209,55 @@ window.syncUserLeaderboardData = async function syncUserLeaderboardData(options 
     const hasCodeforces = linkedAccounts.some((account) => account.platform === "codeforces");
     const hasLeetcode = linkedAccounts.some((account) => account.platform === "leetcode");
     const errors = [];
+    const { ok: hasActiveSession, error: sessionError } = await ensureActiveSession();
+    if (!hasActiveSession) {
+      return {
+        synced: false,
+        skipped: "auth-error",
+        errors: [sessionError],
+        accounts: linkedAccounts,
+        hasCodeforces,
+        hasLeetcode,
+      };
+    }
 
-    const syncCalls = [];
+    const platformSyncCalls = [];
+
     if (hasCodeforces) {
-      syncCalls.push(
-        supabase.functions.invoke("sync-codeforces", {
-          body: { user_id: userId },
-        }).then((result) => ({ name: "sync-codeforces", ...result }))
+      platformSyncCalls.push(
+        invokeProtectedFunction("sync-codeforces", {
+          user_id: userId,
+        }).then((result) => ({ name: "sync-codeforces", result }))
       );
     }
 
     if (hasLeetcode) {
-      syncCalls.push(
-        supabase.functions.invoke("sync-leetcode", {
-          body: { user_id: userId },
-        }).then((result) => ({ name: "sync-leetcode", ...result }))
+      platformSyncCalls.push(
+        invokeProtectedFunction("sync-leetcode", {
+          user_id: userId,
+        }).then((result) => ({ name: "sync-leetcode", result }))
       );
     }
 
-    const syncResults = await Promise.all(syncCalls);
-    syncResults.forEach((result) => {
+    const platformResults = await Promise.all(platformSyncCalls);
+    platformResults.forEach(({ name, result }) => {
       if (result.error) {
-        errors.push(`${result.name}: ${result.error.message}`);
+        errors.push(`${name}: ${result.error.message}`);
       }
     });
 
-    const weeklyResult = await supabase.functions.invoke("sync-weekly-leaderboard");
+    const weeklyResult = await invokeProtectedFunction("sync-weekly-leaderboard", {});
     if (weeklyResult.error) {
       errors.push(`sync-weekly-leaderboard: ${weeklyResult.error.message}`);
     }
 
+    const synced = errors.length === 0;
+    if (synced && options.markAppSyncSeen !== false) {
+      window.markAutoSyncSeen("app");
+    }
+
     return {
-      synced: errors.length === 0,
+      synced,
       skipped: false,
       errors,
       accounts: linkedAccounts,

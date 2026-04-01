@@ -277,8 +277,21 @@
             const appState = await bootstrapAppShell("profile");
             if (!appState) return;
 
-            const { user, accounts, syncResult } = appState;
+            const { user, accounts, syncResult, syncPromise } = appState;
             const syncStatus = document.getElementById("syncStatus");
+
+            const applyScores = (scores) => {
+                if (!scores) return;
+
+                const computedTotal =
+                    (scores.codeforces_points ?? 0) + (scores.leetcode_points ?? 0);
+
+                if (scores.codeforces_points != null)
+                    document.getElementById("cfPoints").textContent = scores.codeforces_points;
+                if (scores.leetcode_points != null)
+                    document.getElementById("lcPoints").textContent = scores.leetcode_points;
+                document.getElementById("totalPoints").textContent = computedTotal;
+            };
 
             const list = document.getElementById("handlesList");
             if (!accounts || accounts.length === 0) {
@@ -301,6 +314,8 @@
 
             if (!accounts || accounts.length === 0) {
                 syncStatus.textContent = "// Link a platform to start syncing submissions.";
+            } else if (syncPromise) {
+                syncStatus.textContent = "// Syncing latest submissions in background...";
             } else if (syncResult?.errors?.length) {
                 syncStatus.textContent = "// Partial refresh completed. Some platforms may still be stale.";
             } else if (syncResult) {
@@ -315,17 +330,28 @@
                 .eq("user_id", user.id)
                 .single();
 
-            if (scores) {
-                const computedTotal =
-                    (scores.codeforces_points ?? 0) + (scores.leetcode_points ?? 0);
+            applyScores(scores);
+            if (scores?.last_updated && !syncResult?.errors?.length && !syncPromise) {
+                syncStatus.textContent = `// Last synced: ${new Date(scores.last_updated).toLocaleString()}`;
+            }
 
-                if (scores.codeforces_points != null)
-                    document.getElementById("cfPoints").textContent = scores.codeforces_points;
-                if (scores.leetcode_points != null)
-                    document.getElementById("lcPoints").textContent = scores.leetcode_points;
-                document.getElementById("totalPoints").textContent = computedTotal;
-                if (scores.last_updated) {
-                    syncStatus.textContent = `// Last synced: ${new Date(scores.last_updated).toLocaleString()}`;
+            if (syncPromise) {
+                const completedSync = await syncPromise;
+
+                if (completedSync?.errors?.length) {
+                    syncStatus.textContent = "// Partial refresh completed. Some platforms may still be stale.";
+                    return;
+                }
+
+                const { data: refreshedScores } = await supabase
+                    .from("user_scores")
+                    .select("codeforces_points, leetcode_points, total_points, last_updated")
+                    .eq("user_id", user.id)
+                    .single();
+
+                applyScores(refreshedScores);
+                if (refreshedScores?.last_updated) {
+                    syncStatus.textContent = `// Last synced: ${new Date(refreshedScores.last_updated).toLocaleString()}`;
                 }
             }
         }

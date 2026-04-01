@@ -890,7 +890,6 @@
             if (isLogin) {
                 const { data, error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) { alert(error.message); return; }
-                await window.syncUserLeaderboardData({ userId: data.user.id });
                 // afterLogin will pick up any pending profile data from localStorage
                 await afterLogin(data.user);
 
@@ -913,7 +912,6 @@
                     }
                 });
                 if (error) {
-                    await window.syncUserLeaderboardData({ userId: data.user.id });
                     localStorage.removeItem("pending_profile");
                     alert(error.message);
                     return;
@@ -1211,32 +1209,45 @@
             const { data: { user: me } } = await supabase.auth.getUser();
             leaderboardPreviewState.myId = me?.id || null;
 
+            const refreshPreviewData = async () => {
+                const [
+                    { data: overallScores, error: overallError },
+                    { data: weeklyPayload, error: weeklyError }
+                ] = await Promise.all([
+                    supabase.functions.invoke('get-leaderboard'),
+                    supabase.functions.invoke('get-weekly-leaderboard')
+                ]);
+
+                leaderboardPreviewState.overall = overallError || !Array.isArray(overallScores)
+                    ? []
+                    : overallScores;
+                leaderboardPreviewState.weekly = weeklyError || !Array.isArray(weeklyPayload?.leaderboard)
+                    ? []
+                    : weeklyPayload.leaderboard;
+                leaderboardPreviewState.weeklyMeta = weeklyPayload
+                    ? {
+                        week_start: weeklyPayload.week_start || null,
+                        week_end: weeklyPayload.week_end || null
+                    }
+                    : null;
+
+                renderLeaderboardPreview();
+            };
+
+            await refreshPreviewData();
+
             if (me && window.shouldAutoSync('landing')) {
-                await window.syncUserLeaderboardData({ userId: me.id });
+                window.syncUserLeaderboardData({ userId: me.id })
+                    .then(async (syncResult) => {
+                        if (syncResult?.synced) {
+                            window.markAutoSyncSeen('landing');
+                            await refreshPreviewData();
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('background sync failed:', error?.message || error);
+                    });
             }
-
-            const [
-                { data: overallScores, error: overallError },
-                { data: weeklyPayload, error: weeklyError }
-            ] = await Promise.all([
-                supabase.functions.invoke('get-leaderboard'),
-                supabase.functions.invoke('get-weekly-leaderboard')
-            ]);
-
-            leaderboardPreviewState.overall = overallError || !Array.isArray(overallScores)
-                ? []
-                : overallScores;
-            leaderboardPreviewState.weekly = weeklyError || !Array.isArray(weeklyPayload?.leaderboard)
-                ? []
-                : weeklyPayload.leaderboard;
-            leaderboardPreviewState.weeklyMeta = weeklyPayload
-                ? {
-                    week_start: weeklyPayload.week_start || null,
-                    week_end: weeklyPayload.week_end || null
-                }
-                : null;
-
-            renderLeaderboardPreview();
         }
 
         function renderLeaderboardPreview() {
