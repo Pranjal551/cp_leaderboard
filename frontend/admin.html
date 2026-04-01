@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CP Leaderboard Admin</title>
+  <style>
+    :root {
+      --bg: #050606;
+      --panel: #0b0e0e;
+      --cyan: #00f2ea;
+      --orange: #f7941e;
+      --text: #d7ecec;
+      --muted: rgba(215,236,236,0.75);
+      --border: rgba(0,242,234,0.2);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 10%, rgba(0,242,234,0.08), transparent 40%),
+                  radial-gradient(circle at 85% 0%, rgba(247,148,30,0.12), transparent 36%),
+                  var(--bg);
+      color: var(--text);
+      font-family: "Fira Code", monospace;
+      min-height: 100vh;
+      padding: 28px 18px;
+    }
+
+    .shell {
+      max-width: 1150px;
+      margin: 0 auto;
+      border: 1px solid var(--border);
+      background: rgba(8,10,10,0.92);
+      padding: 20px;
+      box-shadow: 0 0 28px rgba(0,242,234,0.08);
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      color: var(--cyan);
+      letter-spacing: 0.1em;
+      font-size: 0.82rem;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      padding: 16px;
+    }
+
+    .hidden { display: none; }
+
+    .field {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .field label {
+      color: var(--cyan);
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+    }
+
+    .field input {
+      width: 100%;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      padding: 10px 11px;
+      font-family: "Fira Code", monospace;
+    }
+
+    .btn {
+      border: 1px solid rgba(0,242,234,0.45);
+      background: rgba(0,242,234,0.12);
+      color: var(--cyan);
+      padding: 9px 14px;
+      font-family: "Fira Code", monospace;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: rgba(0,242,234,0.2);
+    }
+
+    .status {
+      margin-top: 10px;
+      min-height: 19px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      text-align: left;
+      font-size: 0.73rem;
+      white-space: nowrap;
+    }
+
+    th {
+      color: var(--cyan);
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      background: rgba(0,242,234,0.05);
+    }
+
+    .name-col { color: #ffffff; }
+    .cf-col { color: #f7941e; }
+    .lc-col { color: #ffa116; }
+    .total-col { color: var(--cyan); }
+
+    @media (max-width: 740px) {
+      .shell {
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand">[ CP_LEADERBOARD_ADMIN ]</div>
+      <div class="meta" id="adminMeta">// NOT LOGGED IN</div>
+    </div>
+
+    <div class="panel" id="loginPanel">
+      <div class="field">
+        <label for="adminId">ADMIN ID</label>
+        <input id="adminId" type="text" autocomplete="username" />
+      </div>
+      <div class="field">
+        <label for="adminPassword">PASSWORD</label>
+        <input id="adminPassword" type="password" autocomplete="current-password" />
+      </div>
+      <button class="btn" id="loginBtn" type="button">LOGIN</button>
+      <div class="status" id="loginStatus"></div>
+    </div>
+
+    <div class="panel hidden" id="dashboardPanel">
+      <div class="actions">
+        <button class="btn" id="refreshBtn" type="button">REFRESH DATA</button>
+        <button class="btn" id="logoutBtn" type="button">LOGOUT</button>
+        <div class="meta" id="weekLabel">// WEEK: --</div>
+      </div>
+      <div class="status" id="dashboardStatus"></div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>NAME</th>
+              <th>SEMESTER</th>
+              <th>CF HANDLE</th>
+              <th>LC HANDLE</th>
+              <th>CF POINTS</th>
+              <th>LC POINTS</th>
+              <th>TOTAL</th>
+              <th>WEEKLY</th>
+            </tr>
+          </thead>
+          <tbody id="studentsBody">
+            <tr><td colspan="9">// NO DATA</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://pzrfvuckvmhuzyanqhra.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_4aXfr9YIQvHLnGMroTFBBQ_VLyHefA7";
+    const ADMIN_TOKEN_KEY = "cp_admin_session_token";
+    const ADMIN_ID_KEY = "cp_admin_id";
+
+    const loginPanel = document.getElementById("loginPanel");
+    const dashboardPanel = document.getElementById("dashboardPanel");
+    const adminMeta = document.getElementById("adminMeta");
+    const loginStatus = document.getElementById("loginStatus");
+    const dashboardStatus = document.getElementById("dashboardStatus");
+    const studentsBody = document.getElementById("studentsBody");
+    const weekLabel = document.getElementById("weekLabel");
+
+    function getSessionToken() {
+      return localStorage.getItem(ADMIN_TOKEN_KEY);
+    }
+
+    function setSession(adminId, token) {
+      localStorage.setItem(ADMIN_ID_KEY, adminId);
+      localStorage.setItem(ADMIN_TOKEN_KEY, token);
+    }
+
+    function clearSession() {
+      localStorage.removeItem(ADMIN_ID_KEY);
+      localStorage.removeItem(ADMIN_TOKEN_KEY);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    async function callFunction(functionName, options = {}) {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
+        method: options.method || "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_ANON_KEY,
+          ...(options.token ? { Authorization: `Bearer ${options.token}` } : {}),
+        },
+        body: options.body ? JSON.stringify(options.body) : undefined,
+      });
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch {}
+
+      if (!response.ok) {
+        throw new Error(payload?.error || `Request failed (${response.status})`);
+      }
+
+      return payload;
+    }
+
+    function showDashboard(adminId) {
+      adminMeta.textContent = `// LOGGED IN AS: ${adminId}`;
+      loginPanel.classList.add("hidden");
+      dashboardPanel.classList.remove("hidden");
+    }
+
+    function showLogin(message = "") {
+      adminMeta.textContent = "// NOT LOGGED IN";
+      dashboardPanel.classList.add("hidden");
+      loginPanel.classList.remove("hidden");
+      loginStatus.textContent = message;
+    }
+
+    function renderStudents(payload) {
+      const students = payload?.students || [];
+      const latestWeek = payload?.latest_week;
+
+      if (latestWeek?.week_start && latestWeek?.week_end) {
+        weekLabel.textContent = `// WEEK: ${latestWeek.week_start} -> ${latestWeek.week_end}`;
+      } else {
+        weekLabel.textContent = "// WEEK: NO WEEKLY DATA";
+      }
+
+      if (students.length === 0) {
+        studentsBody.innerHTML = '<tr><td colspan="9">// NO STUDENTS FOUND</td></tr>';
+        return;
+      }
+
+      studentsBody.innerHTML = students.map((student, index) => {
+        const name = escapeHtml(student.full_name || "-");
+        const semester = escapeHtml(student.semester ?? "-");
+        const cfHandle = escapeHtml(student.codeforces_handle || "-");
+        const lcHandle = escapeHtml(student.leetcode_handle || "-");
+
+        return `
+          <tr>
+            <td>${index + 1}</td>
+            <td class="name-col">${name}</td>
+            <td>${semester}</td>
+            <td>${cfHandle}</td>
+            <td>${lcHandle}</td>
+            <td class="cf-col">${student.codeforces_points ?? 0}</td>
+            <td class="lc-col">${student.leetcode_points ?? 0}</td>
+            <td class="total-col">${student.total_points ?? 0}</td>
+            <td>${student.weekly_points ?? 0}</td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    async function loadAdminData() {
+      const token = getSessionToken();
+      if (!token) {
+        showLogin();
+        return;
+      }
+
+      dashboardStatus.textContent = "// Loading student data...";
+
+      try {
+        const payload = await callFunction("admin-students-overview", {
+          method: "POST",
+          body: {},
+          token,
+        });
+
+        dashboardStatus.textContent = `// Loaded ${payload.total_students ?? 0} student records.`;
+        renderStudents(payload);
+      } catch (error) {
+        clearSession();
+        showLogin(`// ${error.message}`);
+      }
+    }
+
+    document.getElementById("loginBtn").addEventListener("click", async () => {
+      const adminId = document.getElementById("adminId").value.trim();
+      const password = document.getElementById("adminPassword").value;
+
+      if (!adminId || !password) {
+        loginStatus.textContent = "// Enter admin ID and password.";
+        return;
+      }
+
+      loginStatus.textContent = "// Authenticating...";
+
+      try {
+        const payload = await callFunction("admin-login", {
+          method: "POST",
+          body: {
+            admin_id: adminId,
+            password,
+          },
+        });
+
+        setSession(payload.admin_id, payload.token);
+        showDashboard(payload.admin_id);
+        await loadAdminData();
+      } catch (error) {
+        loginStatus.textContent = `// ${error.message}`;
+      }
+    });
+
+    document.getElementById("refreshBtn").addEventListener("click", async () => {
+      await loadAdminData();
+    });
+
+    document.getElementById("logoutBtn").addEventListener("click", () => {
+      clearSession();
+      showLogin("// Logged out.");
+    });
+
+    (function init() {
+      const savedAdminId = localStorage.getItem(ADMIN_ID_KEY);
+      const savedToken = getSessionToken();
+
+      if (!savedAdminId || !savedToken) {
+        showLogin("// Use seeded admin credentials to log in.");
+        return;
+      }
+
+      showDashboard(savedAdminId);
+      loadAdminData();
+    })();
+  </script>
+</body>
+</html>
