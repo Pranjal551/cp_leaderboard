@@ -25,15 +25,15 @@
       color: var(--text);
       font-family: "Fira Code", monospace;
       min-height: 100vh;
-      padding: 28px 18px;
+      padding: 0;
     }
 
     .shell {
-      max-width: 1150px;
-      margin: 0 auto;
+      width: 100%;
+      min-height: 100vh;
       border: 1px solid var(--border);
       background: rgba(8,10,10,0.92);
-      padding: 20px;
+      padding: 22px;
       box-shadow: 0 0 28px rgba(0,242,234,0.08);
     }
 
@@ -62,6 +62,79 @@
       padding: 16px;
     }
 
+    .login-panel {
+      border: none;
+      background: transparent;
+      padding: 6px 0 0;
+    }
+
+    .login-hero {
+      text-align: center;
+      padding: 34px 12px 14px;
+    }
+
+    .login-title {
+      font-size: clamp(2rem, 7vw, 4.5rem);
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      line-height: 1.05;
+      color: #ffffff;
+    }
+
+    .login-title .accent {
+      color: var(--cyan);
+    }
+
+    .login-sub {
+      margin-top: 12px;
+      font-size: 0.8rem;
+      color: rgba(214,234,234,0.78);
+      letter-spacing: 0.09em;
+    }
+
+    .mock-login-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 18px 14px 0;
+    }
+
+    .mock-login-browser {
+      width: min(620px, 100%);
+      border: 1px solid var(--border);
+      background: #080808;
+      box-shadow: 0 0 80px rgba(0,242,234,0.06), 0 0 0 1px rgba(0,242,234,0.06);
+    }
+
+    .mock-login-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 14px;
+      background: #111;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .mock-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .mock-dot.red { background: #ff5f57; }
+    .mock-dot.yellow { background: #febc2e; }
+    .mock-dot.green { background: #28c840; }
+
+    .mock-login-url {
+      margin-left: 12px;
+      font-size: 0.64rem;
+      color: rgba(210,230,230,0.78);
+      letter-spacing: 0.08em;
+    }
+
+    .mock-login-body {
+      padding: 24px 24px 18px;
+    }
+
     .hidden { display: none; }
 
     .field {
@@ -85,6 +158,11 @@
       font-family: "Fira Code", monospace;
     }
 
+    .login-panel .field input {
+      border-color: rgba(0,242,234,0.22);
+      background: rgba(0,242,234,0.05);
+    }
+
     .btn {
       border: 1px solid rgba(0,242,234,0.45);
       background: rgba(0,242,234,0.12);
@@ -96,6 +174,14 @@
 
     .btn:hover {
       background: rgba(0,242,234,0.2);
+    }
+
+    .login-submit {
+      width: 100%;
+      padding: 12px;
+      letter-spacing: 0.15em;
+      font-size: 0.76rem;
+      font-weight: 700;
     }
 
     .status {
@@ -266,6 +352,10 @@
         padding: 14px;
       }
 
+      .login-title {
+        white-space: normal;
+      }
+
       .submissions-grid {
         grid-template-columns: 1fr;
       }
@@ -279,17 +369,35 @@
       <div class="meta" id="adminMeta">// NOT LOGGED IN</div>
     </div>
 
-    <div class="panel" id="loginPanel">
-      <div class="field">
-        <label for="adminId">ADMIN ID</label>
-        <input id="adminId" type="text" autocomplete="username" />
+    <div class="panel login-panel" id="loginPanel">
+      <div class="login-hero">
+        <div class="login-title">ADMIN <span class="accent">DASHBOARD</span></div>
+        <div class="login-sub">// AUTHENTICATED ACCESS TO STUDENT LEADERBOARD DATA</div>
       </div>
-      <div class="field">
-        <label for="adminPassword">PASSWORD</label>
-        <input id="adminPassword" type="password" autocomplete="current-password" />
+
+      <div class="mock-login-wrap">
+        <div class="mock-login-browser">
+          <div class="mock-login-titlebar">
+            <span class="mock-dot red"></span>
+            <span class="mock-dot yellow"></span>
+            <span class="mock-dot green"></span>
+            <span class="mock-login-url">cp-leaderboard.local/admin-auth</span>
+          </div>
+
+          <div class="mock-login-body">
+            <div class="field">
+              <label for="adminId">ADMIN ID</label>
+              <input id="adminId" type="text" autocomplete="username" />
+            </div>
+            <div class="field">
+              <label for="adminPassword">PASSWORD</label>
+              <input id="adminPassword" type="password" autocomplete="current-password" />
+            </div>
+            <button class="btn login-submit" id="loginBtn" type="button">LOGIN</button>
+            <div class="status" id="loginStatus"></div>
+          </div>
+        </div>
       </div>
-      <button class="btn" id="loginBtn" type="button">LOGIN</button>
-      <div class="status" id="loginStatus"></div>
     </div>
 
     <div class="panel hidden" id="dashboardPanel">
