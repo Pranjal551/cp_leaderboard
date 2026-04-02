@@ -459,11 +459,11 @@
     const SUPABASE_ANON_KEY = "sb_publishable_4aXfr9YIQvHLnGMroTFBBQ_VLyHefA7";
     const ADMIN_TOKEN_KEY = "cp_admin_session_token";
     const ADMIN_ID_KEY = "cp_admin_id";
+    const ADMIN_REDIRECT_NOTICE_KEY = "cp_admin_redirect_notice";
 
     const loginPanel = document.getElementById("loginPanel");
     const dashboardPanel = document.getElementById("dashboardPanel");
     const adminMeta = document.getElementById("adminMeta");
-    const loginStatus = document.getElementById("loginStatus");
     const dashboardStatus = document.getElementById("dashboardStatus");
     const studentsBody = document.getElementById("studentsBody");
     const weekLabel = document.getElementById("weekLabel");
@@ -488,14 +488,16 @@
       return localStorage.getItem(ADMIN_TOKEN_KEY);
     }
 
-    function setSession(adminId, token) {
-      localStorage.setItem(ADMIN_ID_KEY, adminId);
-      localStorage.setItem(ADMIN_TOKEN_KEY, token);
-    }
-
     function clearSession() {
       localStorage.removeItem(ADMIN_ID_KEY);
       localStorage.removeItem(ADMIN_TOKEN_KEY);
+    }
+
+    function redirectToMainLogin(message = "") {
+      if (message) {
+        sessionStorage.setItem(ADMIN_REDIRECT_NOTICE_KEY, message);
+      }
+      window.location.href = "./index.html";
     }
 
     function escapeHtml(value) {
@@ -537,10 +539,7 @@
     }
 
     function showLogin(message = "") {
-      adminMeta.textContent = "// NOT LOGGED IN";
-      dashboardPanel.classList.add("hidden");
-      loginPanel.classList.remove("hidden");
-      loginStatus.textContent = message;
+      redirectToMainLogin(message);
     }
 
     function normalizeSemester(value) {
@@ -745,7 +744,7 @@
     async function loadAdminData() {
       const token = getSessionToken();
       if (!token) {
-        showLogin();
+        showLogin("// Sign in from the main login interface.");
         return;
       }
 
@@ -765,7 +764,7 @@
         renderStudents();
       } catch (error) {
         clearSession();
-        showLogin(`// ${error.message}`);
+        showLogin(`// ${error.message} Sign in again.`);
       }
     }
 
@@ -777,34 +776,6 @@
     searchInput.addEventListener("input", () => {
       adminState.searchQuery = searchInput.value;
       renderStudents();
-    });
-
-    document.getElementById("loginBtn").addEventListener("click", async () => {
-      const adminId = document.getElementById("adminId").value.trim();
-      const password = document.getElementById("adminPassword").value;
-
-      if (!adminId || !password) {
-        loginStatus.textContent = "// Enter admin ID and password.";
-        return;
-      }
-
-      loginStatus.textContent = "// Authenticating...";
-
-      try {
-        const payload = await callFunction("admin-login", {
-          method: "POST",
-          body: {
-            admin_id: adminId,
-            password,
-          },
-        });
-
-        setSession(payload.admin_id, payload.token);
-        showDashboard(payload.admin_id);
-        await loadAdminData();
-      } catch (error) {
-        loginStatus.textContent = `// ${error.message}`;
-      }
     });
 
     document.getElementById("refreshBtn").addEventListener("click", async () => {
@@ -822,7 +793,7 @@
       const savedToken = getSessionToken();
 
       if (!savedAdminId || !savedToken) {
-        showLogin("// Use seeded admin credentials to log in.");
+        showLogin("// Sign in with admin credentials from the main login screen.");
         return;
       }
 
