@@ -46,9 +46,36 @@
     }
 
     .brand {
-      color: var(--cyan);
-      letter-spacing: 0.1em;
-      font-size: 0.82rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-height: 72px;
+    }
+
+    .brand-logo {
+      display: block;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(0,242,234,0.18));
+      flex-shrink: 0;
+    }
+
+    .brand-logo-c3 {
+      width: 72px;
+      height: 72px;
+    }
+
+    .brand-logo-nm {
+      width: auto;
+      height: 56px;
+      max-width: 260px;
+    }
+
+    .brand-divider {
+      width: 1px;
+      height: 56px;
+      background: rgba(255,255,255,0.5);
+      box-shadow: 0 0 8px rgba(255,255,255,0.2);
+      flex-shrink: 0;
     }
 
     .meta {
@@ -352,6 +379,26 @@
         padding: 14px;
       }
 
+      .brand {
+        gap: 8px;
+        min-height: 56px;
+      }
+
+      .brand-logo-c3 {
+        width: 56px;
+        height: 56px;
+      }
+
+      .brand-logo-nm {
+        width: auto;
+        height: 42px;
+        max-width: 190px;
+      }
+
+      .brand-divider {
+        height: 42px;
+      }
+
       .login-title {
         white-space: normal;
       }
@@ -365,7 +412,11 @@
 <body>
   <div class="shell">
     <div class="topbar">
-      <div class="brand">[ CP_LEADERBOARD_ADMIN ]</div>
+      <div class="brand" aria-label="CP Leaderboard Brand">
+        <img src="./asset/c3logo.png" alt="C3 Logo" class="brand-logo brand-logo-c3" />
+        <span class="brand-divider" aria-hidden="true"></span>
+        <img src="./asset/nmlogo.png" alt="NM Logo" class="brand-logo brand-logo-nm" />
+      </div>
       <div class="meta" id="adminMeta">// NOT LOGGED IN</div>
     </div>
 

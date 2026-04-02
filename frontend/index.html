@@ -30,21 +30,83 @@
         /* ── NAVBAR ─────────────────────────────────────────── */
         .navbar {
             display: flex;
-            justify-content: space-between;
             align-items: center;
             padding: 18px 48px;
             border-bottom: 1px solid var(--border);
+            gap: 12px;
+        }
+
+        .navbar-slot {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-left {
+            justify-content: flex-start;
+        }
+
+        .nav-center {
+            justify-content: center;
+            gap: 14px;
+        }
+
+        .nav-right {
+            justify-content: flex-end;
+        }
+
+        .nav-logo-icon {
+            display: block;
+            object-fit: contain;
+            filter: drop-shadow(0 0 8px rgba(0, 242, 234, 0.18));
+        }
+
+        .nav-logo-icon-c3 {
+            width: 72px;
+            height: 72px;
+        }
+
+        .nav-logo-icon-nm {
+            width: auto;
+            height: 56px;
+            max-width: 260px;
         }
 
         .nav-logo {
             color: var(--cyan);
             font-size: 0.88rem;
             letter-spacing: 0.12em;
+            white-space: nowrap;
         }
 
         #authArea {
             display: flex;
             align-items: center;
+        }
+
+        @media (max-width: 900px) {
+            .navbar {
+                padding: 14px 18px;
+            }
+
+            .nav-logo-icon {
+                max-width: 100%;
+            }
+
+            .nav-logo-icon-c3 {
+                width: 56px;
+                height: 56px;
+            }
+
+            .nav-logo-icon-nm {
+                width: auto;
+                height: 42px;
+                max-width: 190px;
+            }
+
+            .nav-center {
+                gap: 10px;
+            }
         }
 
         #authArea .ui-btn {
@@ -690,6 +752,21 @@
         }
 
         .card-status::before { content: "▶ "; }
+
+        .site-footer {
+            margin-top: 26px;
+            padding: 18px 20px 26px;
+            border-top: 1px solid rgba(0,242,234,0.18);
+            color: rgba(214,234,234,0.74);
+            text-align: center;
+            font-size: 0.72rem;
+            letter-spacing: 0.09em;
+        }
+
+        .site-footer strong {
+            color: var(--cyan);
+            font-weight: 700;
+        }
     </style>
 </head>
 
@@ -697,11 +774,22 @@
 
     <!-- NAVBAR -->
     <nav class="navbar">
-        <div class="nav-logo">[ CP_LEADERBOARD ]</div>
-        <div id="authArea">
-            <button id="loginBtn" class="ui-btn" aria-label="Open login">
-                <span>LOGIN</span>
-            </button>
+        <div class="navbar-slot nav-left">
+            <img src="./asset/c3logo.png" alt="C3 Logo" class="nav-logo-icon nav-logo-icon-c3">
+        </div>
+
+        <div class="navbar-slot nav-center">
+            <div class="nav-logo">[CP_LEADERBOARD]</div>
+
+            <div id="authArea">
+                <button id="loginBtn" class="ui-btn" aria-label="Open login">
+                    <span>LOGIN</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="navbar-slot nav-right">
+            <img src="./asset/nmlogo.png" alt="NM Logo" class="nav-logo-icon nav-logo-icon-nm">
         </div>
     </nav>
 
@@ -787,6 +875,10 @@
             <span>CODEFORCES INTEGRATION: ACTIVE</span>
         </div>
     </div>
+
+    <footer class="site-footer">
+        COPYRIGHT &copy; <span id="footerYear"></span> <strong>PRANJAL PATHAK</strong>. ALL RIGHTS RESERVED.
+    </footer>
 
 
     <!-- LOGIN MODAL -->
@@ -1540,6 +1632,11 @@
         }
 
         updateAuthModeUI();
+
+        const footerYear = document.getElementById("footerYear");
+        if (footerYear) {
+            footerYear.textContent = String(new Date().getFullYear());
+        }
 
         const adminRedirectNotice = sessionStorage.getItem(ADMIN_REDIRECT_NOTICE_KEY);
         if (adminRedirectNotice) {

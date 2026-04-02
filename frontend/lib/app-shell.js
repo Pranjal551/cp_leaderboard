@@ -9,6 +9,63 @@ function ensureAppShellStyles() {
   const style = document.createElement("style");
   style.id = "appShellStyles";
   style.textContent = `
+    .app-nav-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      justify-self: start;
+      min-height: 72px;
+    }
+
+    .app-nav-logo {
+      display: block;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(0,242,234,0.18));
+    }
+
+    .app-nav-logo-c3 {
+      width: 72px;
+      height: 72px;
+      flex-shrink: 0;
+    }
+
+    .app-nav-logo-nm {
+      width: auto;
+      height: 56px;
+      max-width: 260px;
+      flex-shrink: 0;
+    }
+
+    .app-nav-logo-divider {
+      width: 1px;
+      height: 56px;
+      background: rgba(255,255,255,0.5);
+      box-shadow: 0 0 8px rgba(255,255,255,0.2);
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 900px) {
+      .app-nav-brand {
+        gap: 8px;
+        min-height: 56px;
+      }
+
+      .app-nav-logo-c3 {
+        width: 56px;
+        height: 56px;
+      }
+
+      .app-nav-logo-nm {
+        width: auto;
+        height: 42px;
+        max-width: 190px;
+      }
+
+      .app-nav-logo-divider {
+        height: 42px;
+      }
+    }
+
     .top-loader {
       position: fixed;
       top: 12px;
@@ -168,7 +225,11 @@ window.bootstrapAppShell = async function bootstrapAppShell(activePage) {
 
   if (nav) {
     nav.innerHTML = `
-      <div class="nav-logo">[ CP_LEADERBOARD ]</div>
+      <div class="app-nav-brand" aria-label="CP Leaderboard Brand">
+        <img src="./asset/c3logo.png" alt="C3 Logo" class="app-nav-logo app-nav-logo-c3" />
+        <span class="app-nav-logo-divider" aria-hidden="true"></span>
+        <img src="./asset/nmlogo.png" alt="NM Logo" class="app-nav-logo app-nav-logo-nm" />
+      </div>
       <div class="nav-menu">
         ${navItems
           .map(
