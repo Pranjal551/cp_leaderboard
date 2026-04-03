@@ -459,7 +459,7 @@
           <option value="all">ALL SEMESTERS</option>
         </select>
         <div class="search-wrap">
-          <input id="searchInput" class="search-input" type="text" placeholder="Search by name or handle" />
+          <input id="searchInput" class="search-input" type="text" placeholder="Search by name, handle, or SAP ID" />
         </div>
         <div class="meta" id="weekLabel">// WEEK: --</div>
       </div>
@@ -471,6 +471,7 @@
               <th>#</th>
               <th>NAME</th>
               <th>SEMESTER</th>
+              <th>SAP ID</th>
               <th>CF HANDLE</th>
               <th>LC HANDLE</th>
               <th>CF POINTS</th>
@@ -480,7 +481,7 @@
             </tr>
           </thead>
           <tbody id="studentsBody">
-            <tr><td colspan="9">// NO DATA</td></tr>
+            <tr><td colspan="10">// NO DATA</td></tr>
           </tbody>
         </table>
       </div>
@@ -642,10 +643,12 @@
       }
       return semesterFiltered.filter((student) => {
         const fullName = String(student.full_name || "").toLowerCase();
+        const sapId = String(student.sap_id || "").toLowerCase();
         const cfHandle = String(student.codeforces_handle || "").toLowerCase();
         const lcHandle = String(student.leetcode_handle || "").toLowerCase();
         return (
           fullName.includes(query) ||
+          sapId.includes(query) ||
           cfHandle.includes(query) ||
           lcHandle.includes(query)
         );
@@ -665,13 +668,14 @@
       }
 
       if (filteredStudents.length === 0) {
-        studentsBody.innerHTML = '<tr><td colspan="9">// NO STUDENTS FOUND FOR THIS SEMESTER</td></tr>';
+        studentsBody.innerHTML = '<tr><td colspan="10">// NO STUDENTS FOUND FOR THIS SEMESTER</td></tr>';
         return;
       }
 
       studentsBody.innerHTML = filteredStudents.map((student, index) => {
         const name = escapeHtml(student.full_name || "-");
         const semester = escapeHtml(student.semester ?? "-");
+        const sapId = escapeHtml(student.sap_id || "-");
         const cfHandle = escapeHtml(student.codeforces_handle || "-");
         const lcHandle = escapeHtml(student.leetcode_handle || "-");
 
@@ -680,6 +684,7 @@
             <td>${index + 1}</td>
             <td class="name-col">${name}</td>
             <td>${semester}</td>
+            <td>${sapId}</td>
             <td>${cfHandle}</td>
             <td>${lcHandle}</td>
             <td class="cf-col">${student.codeforces_points ?? 0}</td>

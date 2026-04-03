@@ -56,7 +56,7 @@ serve(async (req) => {
 
     const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
-      .select("id, full_name, semester")
+      .select("id, full_name, semester, sap_id")
       .order("created_at", { ascending: true });
 
     if (profilesError) {
@@ -162,6 +162,7 @@ serve(async (req) => {
           user_id: profile.id,
           full_name: profile.full_name ?? null,
           semester: profile.semester ?? null,
+          sap_id: profile.sap_id ?? null,
           codeforces_handle: handles.codeforces_handle,
           leetcode_handle: handles.leetcode_handle,
           codeforces_points: score.codeforces_points,
