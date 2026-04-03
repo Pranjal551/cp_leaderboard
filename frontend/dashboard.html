@@ -188,6 +188,27 @@
             letter-spacing: 0.08em;
         }
 
+        .info-columns {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+            column-gap: 28px;
+            align-items: start;
+            margin-bottom: 28px;
+        }
+
+        .info-column .handles-section { margin-bottom: 0; }
+
+        .info-divider {
+            align-self: stretch;
+            background: linear-gradient(
+                to bottom,
+                rgba(0, 242, 234, 0),
+                rgba(0, 242, 234, 0.26) 20%,
+                rgba(0, 242, 234, 0.26) 80%,
+                rgba(0, 242, 234, 0)
+            );
+        }
+
         .handles-section { margin-bottom: 40px; }
 
         .handle-row {
@@ -232,6 +253,25 @@
         }
 
         .add-platform-btn:hover { background: rgba(0,242,234,0.08); }
+
+        @media (max-width: 860px) {
+            .info-columns {
+                grid-template-columns: 1fr;
+                row-gap: 14px;
+            }
+
+            .info-divider {
+                width: 100%;
+                min-height: 1px;
+                background: linear-gradient(
+                    to right,
+                    rgba(0, 242, 234, 0),
+                    rgba(0, 242, 234, 0.22) 24%,
+                    rgba(0, 242, 234, 0.22) 76%,
+                    rgba(0, 242, 234, 0)
+                );
+            }
+        }
     </style>
 </head>
 
@@ -240,7 +280,7 @@
     <nav class="navbar" id="appNavbar"></nav>
 
     <div class="main">
-        <div class="sync-status" id="syncStatus">// Checking latest submissions...</div>
+        
 
         <div class="section-title">// YOUR_STATS</div>
         <div class="cards">
@@ -257,7 +297,6 @@
             <div class="card">
                 <div class="card-label">// TOTAL_POINTS</div>
                 <div class="card-value total" id="totalPoints">-</div>
-                <div class="card-sub">LIFETIME</div>
             </div>
         </div>
 
@@ -277,10 +316,31 @@
             </div>
         </div>
 
-        <div class="section-title">// LINKED_PLATFORMS</div>
-        <div class="handles-section" id="handlesList">
-            <div class="empty">// Loading...</div>
+        <div class="info-columns">
+            <div class="info-column">
+                <div class="section-title">// LINKED_PLATFORMS</div>
+                <div class="handles-section" id="handlesList">
+                    <div class="empty">// Loading...</div>
+                </div>
+            </div>
+
+            <div class="info-divider" aria-hidden="true"></div>
+
+            <div class="info-column">
+                <div class="section-title">// ACADEMIC_INFO</div>
+                <div class="handles-section" id="academicInfo">
+                    <div class="handle-row">
+                        <span class="handle-platform">SEMESTER</span>
+                        <span class="handle-name" id="semesterValue">-</span>
+                    </div>
+                    <div class="handle-row">
+                        <span class="handle-platform">SAP_ID</span>
+                        <span class="handle-name" id="sapIdValue">-</span>
+                    </div>
+                </div>
+            </div>
         </div>
+
         <button class="add-platform-btn" onclick="window.location.href='./setup.html'">+ ADD PLATFORM</button>
     </div>
 
@@ -295,6 +355,17 @@
 
             const { user, accounts, syncResult, syncPromise } = appState;
             const syncStatus = document.getElementById("syncStatus");
+
+            const { data: profileData } = await supabase
+                .from("profiles")
+                .select("semester, sap_id")
+                .eq("id", user.id)
+                .maybeSingle();
+
+            document.getElementById("semesterValue").textContent = Number.isInteger(profileData?.semester)
+                ? `SEM ${profileData.semester}`
+                : "-";
+            document.getElementById("sapIdValue").textContent = profileData?.sap_id?.trim() || "-";
 
             const applySolvedCounts = ({ cf = 0, lc = 0 }) => {
                 document.getElementById("cfSolvedCount").textContent = cf;
@@ -364,7 +435,7 @@
             if (!accounts || accounts.length === 0) {
                 syncStatus.textContent = "// Link a platform to start syncing submissions.";
             } else if (syncPromise) {
-                syncStatus.textContent = "// Syncing latest submissions in background...";
+                
             } else if (syncResult?.errors?.length) {
                 syncStatus.textContent = "// Partial refresh completed. Some platforms may still be stale.";
             } else if (syncResult) {
