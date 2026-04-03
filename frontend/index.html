@@ -928,6 +928,11 @@
                     <label for="semester">// SEMESTER</label>
                 </div>
 
+                <div id="sapIdWrap" class="input-group" style="display:none">
+                    <input type="text" id="sapId" placeholder=" ">
+                    <label for="sapId">// SAP ID</label>
+                </div>
+
                 <div class="input-group">
                     <input type="text" id="email" placeholder=" " required>
                     <label for="email">// EMAIL</label>
@@ -964,8 +969,10 @@
         const formTitle    = document.getElementById("formTitle");
         const usernameWrap = document.getElementById("usernameWrap");
         const semesterWrap = document.getElementById("semesterWrap");
+        const sapIdWrap = document.getElementById("sapIdWrap");
         const usernameInput = document.getElementById("username");
         const semesterInput = document.getElementById("semester");
+        const sapIdInput = document.getElementById("sapId");
         const emailInput = document.getElementById("email");
         const emailLabel = form.querySelector('label[for="email"]');
         const passwordInput = document.getElementById("password");
@@ -1032,8 +1039,10 @@
 
             usernameWrap.style.display = showRegister ? "block" : "none";
             semesterWrap.style.display = showRegister ? "block" : "none";
+            sapIdWrap.style.display = showRegister ? "block" : "none";
             usernameInput.required = showRegister;
             semesterInput.required = showRegister;
+            sapIdInput.required = showRegister;
 
             passwordInput.required = !isResetMode;
             passwordInput.parentElement.style.display = isResetMode ? "none" : "block";
@@ -1091,6 +1100,7 @@
             const password = document.getElementById("password").value;
             const username = usernameInput.value.trim();
             const semester = parseInt(semesterInput.value) || null;
+            const sapId = sapIdInput.value.trim();
 
             if (isResetMode) {
                 if (!isLikelyEmail(loginId)) {
@@ -1144,10 +1154,11 @@
             } else {
                 if (!username) { alert("Please enter a username."); return; }
                 if (!semester) { alert("Please select your semester."); return; }
+                if (!sapId) { alert("Please enter your SAP ID."); return; }
                 if (!isLikelyEmail(loginId)) { alert("Please enter a valid email address."); return; }
 
-                // Plain signUp — no user_metadata so auth.users stays clean
-                const pendingProfile = JSON.stringify({ full_name: username, semester });
+                // Include profile metadata so trigger-based profile creation can persist it.
+                const pendingProfile = JSON.stringify({ full_name: username, semester, sap_id: sapId });
                 localStorage.setItem("pending_profile", pendingProfile);
 
                 const { data, error } = await supabase.auth.signUp({
@@ -1156,7 +1167,8 @@
                     options: {
                         data: {
                             full_name: username,
-                            semester
+                            semester,
+                            sap_id: sapId
                         }
                     }
                 });
@@ -1168,7 +1180,7 @@
 
                 if (data.session) {
                     // Email confirmation OFF — session is live, write to profiles now.
-                    const saved = await writeProfile(data.user.id, username, semester);
+                    const saved = await writeProfile(data.user.id, username, semester, sapId);
                     if (!saved) {
                         alert("Account created, but your username could not be saved yet. Please log in once and try again.");
                         return;
@@ -1186,11 +1198,16 @@
             }
         });
 
-        // Write full_name + semester to the profiles table.
+        // Write full_name + semester + sap_id to the profiles table.
         // Must be called while an active session exists (auth.uid() must match id).
-        async function writeProfile(userId, fullName, semester) {
+        async function writeProfile(userId, fullName, semester, sapId = null) {
             const cleanName = fullName.trim();
-            const updates = { full_name: cleanName, semester };
+            const cleanSapId = typeof sapId === "string" ? sapId.trim() : "";
+            const updates = {
+                full_name: cleanName,
+                semester,
+                sap_id: cleanSapId || null,
+            };
 
             let { error } = await supabase
                 .from("profiles")
@@ -1212,7 +1229,7 @@
 
             const { data: profile, error: verifyError } = await supabase
                 .from("profiles")
-                .select("full_name, semester")
+                .select("full_name, semester, sap_id")
                 .eq("id", userId)
                 .single();
 
@@ -1221,7 +1238,11 @@
                 return false;
             }
 
-            return profile?.full_name === cleanName && profile?.semester === semester;
+            return (
+                profile?.full_name === cleanName
+                && profile?.semester === semester
+                && (profile?.sap_id ?? null) === (cleanSapId || null)
+            );
         }
 
         function isSemesterTransitionDate(now = new Date()) {
@@ -1365,8 +1386,13 @@
             const pending = localStorage.getItem("pending_profile");
             if (pending) {
                 try {
-                    const { full_name, semester } = JSON.parse(pending);
-                    const saved = await writeProfile(user.id, full_name, semester);
+                    const pendingProfile = JSON.parse(pending);
+                    const saved = await writeProfile(
+                        user.id,
+                        pendingProfile.full_name,
+                        pendingProfile.semester,
+                        pendingProfile.sap_id ?? null,
+                    );
                     if (saved) {
                         localStorage.removeItem("pending_profile");
                     }

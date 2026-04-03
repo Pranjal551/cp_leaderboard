@@ -16,6 +16,7 @@ create table if not exists public.profiles (
     full_name text,
     department text,
     semester integer,
+    sap_id text,
     last_semester_transition_prompt_on date,
     created_at timestamp default now()
 );
