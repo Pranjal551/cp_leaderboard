@@ -71,9 +71,9 @@ function ensureAppShellStyles() {
       top: 12px;
       left: 50%;
       transform: translateX(-50%) translateY(-8px);
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
+      justify-content: center;
       padding: 9px 14px;
       border: 1px solid rgba(0,242,234,0.24);
       background: rgba(8,12,12,0.94);
@@ -86,6 +86,10 @@ function ensureAppShellStyles() {
       z-index: 9999;
       transition: opacity 0.2s ease, transform 0.2s ease;
       box-shadow: 0 0 18px rgba(0,242,234,0.12);
+      min-width: 248px;
+      min-height: 42px;
+      position: fixed;
+      overflow: hidden;
     }
 
     .top-loader.visible {
@@ -93,13 +97,27 @@ function ensureAppShellStyles() {
       transform: translateX(-50%) translateY(0);
     }
 
-    .top-loader-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
+    .top-loader-label {
+      position: relative;
+      z-index: 2;
+    }
+
+    .top-loader-cubes {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .top-loader-cube {
+      position: absolute;
+      width: 7px;
+      height: 7px;
       background: #00f2ea;
-      box-shadow: 0 0 12px rgba(0,242,234,0.6);
-      animation: topLoaderPulse 0.9s ease-in-out infinite;
+      opacity: 0.38;
+      box-shadow: 0 0 8px rgba(0,242,234,0.32);
+      animation: topLoaderPulse 0.95s ease-in-out infinite;
+      animation-delay: var(--delay, 0s);
     }
 
     @keyframes topLoaderPulse {
@@ -127,13 +145,32 @@ function ensureTopLoader() {
     loader.id = "topLoader";
     loader.className = "top-loader";
     loader.innerHTML = `
-      <span class="top-loader-dot"></span>
-      <span>it will take a second</span>
+      <span class="top-loader-cubes" aria-hidden="true">
+        <span class="top-loader-cube" style="--delay: 0s;"></span>
+        <span class="top-loader-cube" style="--delay: 0.12s;"></span>
+        <span class="top-loader-cube" style="--delay: 0.24s;"></span>
+      </span>
+      <span class="top-loader-label">it will take a second</span>
     `;
     document.body.appendChild(loader);
   }
 
   return loader;
+}
+
+function randomizeTopLoaderCubes(loader) {
+  const cubes = loader?.querySelectorAll(".top-loader-cube");
+  if (!cubes?.length) return;
+
+  cubes.forEach((cube, index) => {
+    const x = 8 + Math.floor(Math.random() * 78);
+    const y = 14 + Math.floor(Math.random() * 50);
+    const size = 5 + ((index + Math.floor(Math.random() * 3)) % 4);
+    cube.style.left = `${x}%`;
+    cube.style.top = `${y}%`;
+    cube.style.width = `${size}px`;
+    cube.style.height = `${size}px`;
+  });
 }
 
 function ensureNavTransitionOverlay() {
@@ -160,6 +197,7 @@ function ensureNavTransitionOverlay() {
 function showTopLoader(persistForNextPage = false) {
   const loader = ensureTopLoader();
   const overlay = ensureNavTransitionOverlay();
+  randomizeTopLoaderCubes(loader);
 
   overlay.style.opacity = "1";
   overlay.style.pointerEvents = "auto";
