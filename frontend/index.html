@@ -32,14 +32,43 @@
             display: flex;
             align-items: center;
             padding: 18px 48px;
-            border-bottom: 1px solid var(--border);
             gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .navbar::after {
+            content: none;
+        }
+
+        .nav-bg-cubes {
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 42px;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .nav-bg-cubes .cube {
+            position: absolute;
+            width: var(--size, 8px);
+            height: var(--size, 8px);
+            left: var(--left, 0%);
+            top: var(--top, 50%);
+            background: #00f2ea;
+            box-shadow: 0 0 10px rgba(0, 242, 234, 0.55);
+            opacity: var(--alpha, 0.8);
         }
 
         .navbar-slot {
             flex: 1;
             display: flex;
             align-items: center;
+            position: relative;
+            z-index: 1;
         }
 
         .nav-left {
@@ -53,6 +82,28 @@
 
         .nav-right {
             justify-content: flex-end;
+        }
+
+        .nav-merge-cubes {
+            position: relative;
+            height: 34px;
+            overflow: hidden;
+        }
+
+        .nav-merge-cubes .cube {
+            position: absolute;
+            width: var(--size, 8px);
+            height: var(--size, 8px);
+            left: var(--left, 0%);
+            top: var(--top, 50%);
+            background: #00f2ea;
+            box-shadow: 0 0 14px rgba(0, 242, 234, 0.6);
+            transform: translateY(-50%);
+        }
+
+        .nav-merge-cubes .cube.soft {
+            background: rgba(0, 242, 234, 0.72);
+            box-shadow: 0 0 10px rgba(0, 242, 234, 0.45);
         }
 
         .nav-logo-icon {
@@ -89,6 +140,10 @@
                 padding: 14px 18px;
             }
 
+            .nav-bg-cubes .cube {
+                box-shadow: 0 0 8px rgba(0, 242, 234, 0.45);
+            }
+
             .nav-logo-icon {
                 max-width: 100%;
             }
@@ -106,6 +161,14 @@
 
             .nav-center {
                 gap: 10px;
+            }
+
+            .nav-merge-cubes {
+                height: 28px;
+            }
+
+            .nav-merge-cubes .cube {
+                box-shadow: 0 0 8px rgba(0, 242, 234, 0.3);
             }
         }
 
@@ -774,6 +837,18 @@
 
     <!-- NAVBAR -->
     <nav class="navbar">
+        <div class="nav-bg-cubes" aria-hidden="true">
+            <span class="cube" style="--left: 4%; --top: 24%; --size: 8px; --alpha: 0.9;"></span>
+            <span class="cube" style="--left: 10%; --top: 68%; --size: 6px; --alpha: 0.55;"></span>
+            <span class="cube" style="--left: 21%; --top: 30%; --size: 7px; --alpha: 0.78;"></span>
+            <span class="cube" style="--left: 34%; --top: 64%; --size: 6px; --alpha: 0.5;"></span>
+            <span class="cube" style="--left: 46%; --top: 20%; --size: 9px; --alpha: 0.86;"></span>
+            <span class="cube" style="--left: 57%; --top: 58%; --size: 7px; --alpha: 0.62;"></span>
+            <span class="cube" style="--left: 70%; --top: 28%; --size: 8px; --alpha: 0.82;"></span>
+            <span class="cube" style="--left: 81%; --top: 66%; --size: 6px; --alpha: 0.52;"></span>
+            <span class="cube" style="--left: 93%; --top: 24%; --size: 9px; --alpha: 0.84;"></span>
+        </div>
+
         <div class="navbar-slot nav-left">
             <img src="./asset/c3logo.png" alt="C3 Logo" class="nav-logo-icon nav-logo-icon-c3">
         </div>
@@ -792,6 +867,23 @@
             <img src="./asset/nmlogo.png" alt="NM Logo" class="nav-logo-icon nav-logo-icon-nm">
         </div>
     </nav>
+
+    <div class="nav-merge-cubes" aria-hidden="true">
+        <span class="cube" style="--left: 6%; --top: 26%; --size: 10px;"></span>
+        <span class="cube soft" style="--left: 11%; --top: 64%; --size: 6px;"></span>
+        <span class="cube" style="--left: 18%; --top: 38%; --size: 8px;"></span>
+        <span class="cube soft" style="--left: 24%; --top: 74%; --size: 7px;"></span>
+        <span class="cube" style="--left: 32%; --top: 30%; --size: 9px;"></span>
+        <span class="cube soft" style="--left: 39%; --top: 58%; --size: 6px;"></span>
+        <span class="cube" style="--left: 47%; --top: 22%; --size: 11px;"></span>
+        <span class="cube" style="--left: 53%; --top: 70%; --size: 8px;"></span>
+        <span class="cube soft" style="--left: 61%; --top: 40%; --size: 7px;"></span>
+        <span class="cube" style="--left: 69%; --top: 26%; --size: 9px;"></span>
+        <span class="cube soft" style="--left: 76%; --top: 66%; --size: 6px;"></span>
+        <span class="cube" style="--left: 83%; --top: 34%; --size: 8px;"></span>
+        <span class="cube soft" style="--left: 90%; --top: 60%; --size: 7px;"></span>
+        <span class="cube" style="--left: 95%; --top: 24%; --size: 10px;"></span>
+    </div>
 
     <!-- HERO -->
     <section class="hero">
