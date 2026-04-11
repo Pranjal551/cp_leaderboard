@@ -49,13 +49,22 @@ serve(async (req) => {
 
     if (clearError) throw clearError;
 
-    const rows = Object.entries(userPointsMap).map(([user_id, total_points]) => ({
+    const rows = Object.entries(userPointsMap)
+      .map(([user_id, total_points]) => ({
       user_id,
       week_start: weekStartDate,
       week_end: weekEndDate,
       total_points,
       created_at: new Date().toISOString(),
-    }));
+      }))
+      .sort((a, b) => {
+        if (b.total_points !== a.total_points) {
+          return b.total_points - a.total_points;
+        }
+
+        // Deterministic tie-breaker for weekly rank-1 winner.
+        return a.user_id.localeCompare(b.user_id);
+      });
 
     if (rows.length > 0) {
       const { error: insertError } = await supabase
@@ -65,11 +74,59 @@ serve(async (req) => {
       if (insertError) throw insertError;
     }
 
+    // Reset all users to 'no' first.
+    const { error: resetCoderError } = await supabase
+      .from("profiles")
+      .update({ coder_of_the_week: "no" })
+      .not("id", "is", null);
+
+    if (resetCoderError) throw resetCoderError;
+
+    // Coder of the week is awarded to the rank-1 of the PREVIOUS week.
+    let weeklyWinnerUserId: string | null = null;
+
+    const prevWeekStart = new Date(weekStart);
+    prevWeekStart.setUTCDate(prevWeekStart.getUTCDate() - 7);
+    const prevWeekStartDate = prevWeekStart.toISOString().slice(0, 10);
+    
+    const prevWeekEnd = new Date(weekEnd);
+    prevWeekEnd.setUTCDate(prevWeekEnd.getUTCDate() - 7);
+    const prevWeekEndDate = prevWeekEnd.toISOString().slice(0, 10);
+
+    const { data: prevWeekScores, error: prevWeekError } = await supabase
+      .from("weekly_scores")
+      .select("user_id, total_points")
+      .eq("week_start", prevWeekStartDate)
+      .eq("week_end", prevWeekEndDate)
+      .order("total_points", { ascending: false })
+      .order("user_id", { ascending: true })
+      .limit(1);
+
+    if (prevWeekError) throw prevWeekError;
+
+    if (prevWeekScores && prevWeekScores.length > 0) {
+      weeklyWinnerUserId = prevWeekScores[0].user_id;
+    } else if (rows.length > 0) {
+      // Fallback: If there is no previous week data (e.g., first week of launch),
+      // temporarily award coder of the week to the current week's rank 1.
+      weeklyWinnerUserId = rows[0].user_id;
+    }
+
+    if (weeklyWinnerUserId) {
+      const { error: setWinnerError } = await supabase
+        .from("profiles")
+        .update({ coder_of_the_week: "yes" })
+        .eq("id", weeklyWinnerUserId);
+
+      if (setWinnerError) throw setWinnerError;
+    }
+
     return new Response(
       JSON.stringify({
         week_start: weekStartDate,
         week_end: weekEndDate,
         usersSynced: rows.length,
+        weeklyWinnerUserId,
       }),
       {
         headers: {

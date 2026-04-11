@@ -146,9 +146,10 @@ function ensureTopLoader() {
     loader.className = "top-loader";
     loader.innerHTML = `
       <span class="top-loader-cubes" aria-hidden="true">
-        <span class="top-loader-cube" style="--delay: 0s;"></span>
-        <span class="top-loader-cube" style="--delay: 0.12s;"></span>
-        <span class="top-loader-cube" style="--delay: 0.24s;"></span>
+        <span class="top-loader-cube" style="left: 10px; top: 8px; width: 7px; height: 7px; --delay: 0s;"></span>
+        <span class="top-loader-cube" style="left: 22px; bottom: 8px; width: 6px; height: 6px; --delay: 0.12s;"></span>
+        <span class="top-loader-cube" style="right: 22px; top: 8px; width: 6px; height: 6px; --delay: 0.24s;"></span>
+        <span class="top-loader-cube" style="right: 10px; bottom: 8px; width: 7px; height: 7px; --delay: 0.36s;"></span>
       </span>
       <span class="top-loader-label">it will take a second</span>
     `;
@@ -156,21 +157,6 @@ function ensureTopLoader() {
   }
 
   return loader;
-}
-
-function randomizeTopLoaderCubes(loader) {
-  const cubes = loader?.querySelectorAll(".top-loader-cube");
-  if (!cubes?.length) return;
-
-  cubes.forEach((cube, index) => {
-    const x = 8 + Math.floor(Math.random() * 78);
-    const y = 14 + Math.floor(Math.random() * 50);
-    const size = 5 + ((index + Math.floor(Math.random() * 3)) % 4);
-    cube.style.left = `${x}%`;
-    cube.style.top = `${y}%`;
-    cube.style.width = `${size}px`;
-    cube.style.height = `${size}px`;
-  });
 }
 
 function ensureNavTransitionOverlay() {
@@ -197,7 +183,6 @@ function ensureNavTransitionOverlay() {
 function showTopLoader(persistForNextPage = false) {
   const loader = ensureTopLoader();
   const overlay = ensureNavTransitionOverlay();
-  randomizeTopLoaderCubes(loader);
 
   overlay.style.opacity = "1";
   overlay.style.pointerEvents = "auto";

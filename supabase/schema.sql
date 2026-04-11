@@ -17,6 +17,7 @@ create table if not exists public.profiles (
     department text,
     semester integer,
     sap_id text,
+    coder_of_the_week text not null default 'no' check (coder_of_the_week in ('yes', 'no')),
     last_semester_transition_prompt_on date,
     created_at timestamp default now()
 );
