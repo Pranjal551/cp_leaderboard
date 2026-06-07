@@ -281,6 +281,10 @@
             if (!appState) return;
 
             const myId = appState.user.id;
+            if (appState.syncPromise) {
+                await appState.syncPromise;
+            }
+
             const { data, error } = await supabase.functions.invoke("get-weekly-leaderboard");
 
             const leaderboard = data?.leaderboard || [];

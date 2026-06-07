@@ -82,37 +82,11 @@ serve(async (req) => {
 
     if (resetCoderError) throw resetCoderError;
 
-    // Coder of the week is awarded to the rank-1 of the PREVIOUS week.
+    // Weekly rank-1 gets 'yes'. If there are no weekly rows, everyone stays 'no'.
     let weeklyWinnerUserId: string | null = null;
-
-    const prevWeekStart = new Date(weekStart);
-    prevWeekStart.setUTCDate(prevWeekStart.getUTCDate() - 7);
-    const prevWeekStartDate = prevWeekStart.toISOString().slice(0, 10);
-    
-    const prevWeekEnd = new Date(weekEnd);
-    prevWeekEnd.setUTCDate(prevWeekEnd.getUTCDate() - 7);
-    const prevWeekEndDate = prevWeekEnd.toISOString().slice(0, 10);
-
-    const { data: prevWeekScores, error: prevWeekError } = await supabase
-      .from("weekly_scores")
-      .select("user_id, total_points")
-      .eq("week_start", prevWeekStartDate)
-      .eq("week_end", prevWeekEndDate)
-      .order("total_points", { ascending: false })
-      .order("user_id", { ascending: true })
-      .limit(1);
-
-    if (prevWeekError) throw prevWeekError;
-
-    if (prevWeekScores && prevWeekScores.length > 0) {
-      weeklyWinnerUserId = prevWeekScores[0].user_id;
-    } else if (rows.length > 0) {
-      // Fallback: If there is no previous week data (e.g., first week of launch),
-      // temporarily award coder of the week to the current week's rank 1.
+    if (rows.length > 0) {
       weeklyWinnerUserId = rows[0].user_id;
-    }
 
-    if (weeklyWinnerUserId) {
       const { error: setWinnerError } = await supabase
         .from("profiles")
         .update({ coder_of_the_week: "yes" })

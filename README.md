@@ -7,11 +7,6 @@ Students link their Codeforces and LeetCode accounts, sync solved problems, and 
 
 - App: https://cp-leaderboard-pi.vercel.app
 
-## Why This Project
-
-Most college CP groups track progress manually in spreadsheets.
-This project turns that process into a real-time web app with automated scoring, profile tracking, and an admin control panel.
-
 ## Showcase Highlights
 
 - Clean student onboarding: register, login, password reset, and profile setup.
@@ -101,14 +96,12 @@ This project is actively working for student and admin flows.
 Known improvement areas:
 
 - Align schema.sql with latest migration/runtime shape.
-- Fix monthly sync write field mismatch in sync-monthly-leaderboard.
 - Add scheduled sync jobs and automated tests.
 
 ## Roadmap
 
 - Add charts and trend analytics per student.
 - Add batch sync scheduling with retries.
-- Add role-based admin controls and audit logs.
 - Add CI checks for migration and function contracts.
 
 ## Author
