@@ -1,4 +1,9 @@
 {
+  "name": "college-cp-leaderboard",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npx serve frontend"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0"
   }

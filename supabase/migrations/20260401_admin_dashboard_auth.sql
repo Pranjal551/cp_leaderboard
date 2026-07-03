@@ -72,8 +72,4 @@ revoke all on function public.verify_admin_credentials(text, text) from anon;
 revoke all on function public.verify_admin_credentials(text, text) from authenticated;
 grant execute on function public.verify_admin_credentials(text, text) to service_role;
 
--- Bootstrap admin credentials.
--- IMPORTANT: Change this password immediately after first login.
-insert into public.admin_users (admin_id, password_hash)
-values ('admin', extensions.crypt('admin12345', extensions.gen_salt('bf')))
-on conflict (admin_id) do nothing;
+
