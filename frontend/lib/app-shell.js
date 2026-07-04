@@ -203,6 +203,142 @@ function hideTopLoader() {
   }
 }
 
+function getSemesterCycleStartDate(now = new Date()) {
+  const year = now.getFullYear();
+  const july1 = new Date(year, 6, 1);
+  if (now >= july1) {
+    return `${year}-07-01`;
+  } else {
+    return `${year}-01-01`;
+  }
+}
+
+function getLocalIsoDate(now = new Date()) {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function showSemesterTransitionPrompt() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement("div");
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.background = "rgba(0,0,0,0.75)";
+    overlay.style.display = "flex";
+    overlay.style.alignItems = "center";
+    overlay.style.justifyContent = "center";
+    overlay.style.zIndex = "9999";
+
+    const dialog = document.createElement("div");
+    dialog.style.width = "min(92vw, 480px)";
+    dialog.style.border = "1px solid rgba(0,242,234,0.35)";
+    dialog.style.background = "#050505";
+    dialog.style.padding = "22px";
+    dialog.style.fontFamily = "'Fira Code', monospace";
+    dialog.style.color = "#d6ebeb";
+    dialog.style.boxShadow = "0 0 24px rgba(0,242,234,0.2)";
+
+    const message = document.createElement("div");
+    message.textContent = "Moved successfully to next semester?";
+    message.style.fontSize = "0.9rem";
+    message.style.letterSpacing = "0.06em";
+    message.style.marginBottom = "18px";
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "10px";
+    actions.style.justifyContent = "flex-end";
+
+    const noBtn = document.createElement("button");
+    noBtn.type = "button";
+    noBtn.textContent = "No";
+    noBtn.style.padding = "8px 16px";
+    noBtn.style.border = "1px solid rgba(255,255,255,0.2)";
+    noBtn.style.background = "transparent";
+    noBtn.style.color = "#d6ebeb";
+    noBtn.style.cursor = "pointer";
+
+    const yesBtn = document.createElement("button");
+    yesBtn.type = "button";
+    yesBtn.textContent = "Yes";
+    yesBtn.style.padding = "8px 16px";
+    yesBtn.style.border = "1px solid rgba(0,242,234,0.4)";
+    yesBtn.style.background = "rgba(0,242,234,0.08)";
+    yesBtn.style.color = "#00f2ea";
+    yesBtn.style.cursor = "pointer";
+
+    const cleanup = (value) => {
+      document.removeEventListener("keydown", onKeyDown);
+      overlay.remove();
+      resolve(value);
+    };
+
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        cleanup(false);
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    noBtn.addEventListener("click", () => cleanup(false));
+    yesBtn.addEventListener("click", () => cleanup(true));
+
+    actions.appendChild(noBtn);
+    actions.appendChild(yesBtn);
+    dialog.appendChild(message);
+    dialog.appendChild(actions);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+  });
+}
+
+async function maybeHandleSemesterTransition(userId) {
+  const today = getLocalIsoDate();
+  const cycleStart = getSemesterCycleStartDate();
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("semester, last_semester_transition_prompt_on")
+    .eq("id", userId)
+    .maybeSingle();
+
+  if (profileError || !profile) {
+    console.error("semester transition check failed:", profileError?.message || "profile missing");
+    return;
+  }
+
+  const lastPromptOn = profile.last_semester_transition_prompt_on;
+
+  // If they have not answered it for the current cycle (lastPromptOn is null or older than cycleStart)
+  const needsPrompt = !lastPromptOn || lastPromptOn < cycleStart;
+
+  if (!needsPrompt) {
+    return;
+  }
+
+  const moveToNextSemester = await showSemesterTransitionPrompt();
+  const currentSemester = Number.isInteger(profile.semester) ? profile.semester : 0;
+
+  const updates = {
+    last_semester_transition_prompt_on: today,
+  };
+
+  if (moveToNextSemester) {
+    updates.semester = currentSemester + 1;
+  }
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update(updates)
+    .eq("id", userId);
+
+  if (updateError) {
+    console.error("semester transition update failed:", updateError.message);
+  }
+}
+
 window.bootstrapAppShell = async function bootstrapAppShell(activePage) {
   ensureTopLoader();
 
@@ -219,6 +355,9 @@ window.bootstrapAppShell = async function bootstrapAppShell(activePage) {
     window.location.href = "./index.html";
     return null;
   }
+
+  // Handle semester transition check
+  await maybeHandleSemesterTransition(user.id);
 
   const shouldSyncNow = window.shouldAutoSync("app");
   const syncPromise = shouldSyncNow
