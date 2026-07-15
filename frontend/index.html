@@ -433,34 +433,106 @@
             text-shadow: 0 0 16px rgba(0,242,234,0.22);
         }
 
-        /* stat chips */
-        .mock-stats {
+        /* Podium styling */
+        .podium-container {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 14px;
+            grid-template-columns: 1fr 1.05fr 1fr;
+            gap: 12px;
+            margin: 20px 0 24px 0;
+            align-items: end;
         }
 
-        .mock-stat {
-            border: 1px solid rgba(255,255,255,0.07);
-            padding: 10px 14px;
+        .podium-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 6px;
+            padding: 16px 12px;
+            text-align: center;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
         }
 
-        .mock-stat-label {
-            font-size: 0.55rem;
-            letter-spacing: 0.12em;
-            color: rgba(206,228,228,0.76);
+        .podium-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .podium-card.rank-1 {
+            background: rgba(255, 202, 40, 0.03);
+            border-color: rgba(255, 202, 40, 0.25);
+            box-shadow: 0 0 20px rgba(255, 202, 40, 0.08);
+            padding: 24px 12px 20px 12px;
+        }
+
+        .podium-card.rank-2 {
+            background: rgba(224, 224, 224, 0.02);
+            border-color: rgba(224, 224, 224, 0.18);
+            box-shadow: 0 0 16px rgba(224, 224, 224, 0.04);
+        }
+
+        .podium-card.rank-3 {
+            background: rgba(244, 143, 95, 0.02);
+            border-color: rgba(244, 143, 95, 0.18);
+            box-shadow: 0 0 16px rgba(244, 143, 95, 0.04);
+        }
+
+        .podium-medal {
+            font-size: 1.5rem;
             margin-bottom: 8px;
+            display: block;
+        }
+        
+        .podium-card.rank-1 .podium-medal {
+            filter: drop-shadow(0 0 8px rgba(255,202,40,0.5));
+        }
+        .podium-card.rank-2 .podium-medal {
+            filter: drop-shadow(0 0 8px rgba(224,224,224,0.4));
+        }
+        .podium-card.rank-3 .podium-medal {
+            filter: drop-shadow(0 0 8px rgba(244,143,95,0.4));
         }
 
-        .mock-stat-bar {
-            height: 3px;
-            width: 28px;
+        .podium-rank-label {
+            font-size: 0.55rem;
+            letter-spacing: 0.15em;
+            color: rgba(255,255,255,0.4);
+            margin-bottom: 4px;
         }
 
-        .mock-stat-bar.cyan   { background: var(--cyan); }
-        .mock-stat-bar.purple { background: var(--purple); }
-        .mock-stat-bar.orange { background: var(--orange); }
+        .podium-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: rgba(255,255,255,0.9);
+            margin: 6px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .podium-card.rank-1 .podium-name {
+            color: #ffca28;
+            font-size: 0.9rem;
+        }
+
+        .podium-score-container {
+            margin-top: 8px;
+        }
+
+        .podium-score-val {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .podium-card.rank-1 .podium-score-val { color: #ffca28; }
+        .podium-card.rank-2 .podium-score-val { color: #e0e0e0; }
+        .podium-card.rank-3 .podium-score-val { color: #f48f5f; }
+
+        .podium-score-lbl {
+            font-size: 0.5rem;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.3);
+            margin-top: 2px;
+        }
 
         /* leaderboard table */
         .mock-table { width: 100%; border-collapse: collapse; }
@@ -998,21 +1070,8 @@
                     <div class="mock-mode-copy" id="mockModeCopy">OVERALL_LEADERBOARD</div>
                 </div>
 
-                <!-- Stat chips -->
-                <div class="mock-stats">
-                    <div class="mock-stat">
-                        <div class="mock-stat-label" id="statLabel1">TOTAL_MEMBERS</div>
-                        <div id="statMembers" style="font-size:1.1rem;font-weight:700;color:#00f2ea;margin-top:4px;">—</div>
-                    </div>
-                    <div class="mock-stat">
-                        <div class="mock-stat-label" id="statLabel2">TOP_CF_PTS</div>
-                        <div id="statTopCF" style="font-size:1.1rem;font-weight:700;color:#a855f7;margin-top:4px;">—</div>
-                    </div>
-                    <div class="mock-stat">
-                        <div class="mock-stat-label" id="statLabel3">MAX_LC_PTS</div>
-                        <div id="statMaxLC" style="font-size:1.1rem;font-weight:700;color:#f7941e;margin-top:4px;">—</div>
-                    </div>
-                </div>
+                <!-- Podium / Top 3 Section -->
+                <div id="leaderboardPodium" class="podium-container"></div>
 
                 <!-- Coder of the Week Banner -->
                 <div id="coderOfTheWeekBox" class="coder-week-banner" style="display: none;">
@@ -1492,42 +1551,7 @@
                        onclick="window.location.href='./dashboard.html'">${display}</span>`;
         }
 
-        async function loadLeaderboard() {
-            const { data: scores, error } = await supabase.functions.invoke('get-leaderboard');
 
-            if (error || !scores || scores.length === 0) {
-                document.getElementById('lbBody').innerHTML =
-                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO DATA YET — BE THE FIRST TO JOIN</td></tr>`;
-                return;
-            }
-
-            // Get current user id (may be null for anonymous visitors)
-            const { data: { user: me } } = await supabase.auth.getUser();
-            const myId = me?.id || null;
-
-            // Stat chips
-            document.getElementById('statMembers').textContent = scores.length;
-            const topCF = Math.max(...scores.map(s => s.codeforces_points || 0));
-            const maxLC = Math.max(...scores.map(s => s.leetcode_points || 0));
-            document.getElementById('statTopCF').textContent = topCF;
-            document.getElementById('statMaxLC').textContent = maxLC;
-
-            // Build rows
-            const tbody = document.getElementById('lbBody');
-            tbody.innerHTML = scores.map((s, i) => {
-                const isMe = s.user_id === myId;
-                const rank = String(i + 1).padStart(2, '0');
-                const name = s.handle || s.full_name || '—';
-                const tot  = s.total_points       ?? '—';
-                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
-                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
-                return `<tr style="${rowStyle}">
-                    <td class="mock-rank">${rank}${isMe ? ' ◀' : ''}</td>
-                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
-                    <td style="color:#00f2ea;text-align:right">${tot}</td>
-                </tr>`;
-            }).join('');
-        }
 
         const leaderboardPreviewState = {
             activeMode: 'overall',
@@ -1629,23 +1653,76 @@
             }
         }
 
+        function renderPodium(scores, scoreLabel) {
+            const podiumEl = document.getElementById('leaderboardPodium');
+            if (!podiumEl) return;
+
+            if (!scores || scores.length === 0) {
+                podiumEl.innerHTML = '';
+                podiumEl.style.display = 'none';
+                return;
+            }
+
+            podiumEl.style.display = 'grid';
+
+            // Extract top 3
+            const first = scores[0] || null;
+            const second = scores[1] || null;
+            const third = scores[2] || null;
+
+            const createCardHTML = (entry, rankClass, medal, rankNum) => {
+                if (!entry) {
+                    return `
+                        <div class="podium-card ${rankClass}" style="opacity: 0.35;">
+                            <div class="podium-medal">👤</div>
+                            <div class="podium-rank-label">RANK #${rankNum}</div>
+                            <div class="podium-name">Empty</div>
+                            <div class="podium-score-container">
+                                <div class="podium-score-val">—</div>
+                                <div class="podium-score-lbl">${scoreLabel}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+                const name = entry.handle || entry.full_name || '-';
+                let val = '-';
+                if (leaderboardPreviewState.activeMode === 'weekly') {
+                    val = entry.total_points ?? 0;
+                } else if (leaderboardPreviewState.activeMode === 'leetcode') {
+                    val = entry.lc_raw ?? 0;
+                } else if (leaderboardPreviewState.activeMode === 'codeforces') {
+                    val = entry.cf_raw ?? 0;
+                } else {
+                    val = entry.total_points ?? 0;
+                }
+
+                return `
+                    <div class="podium-card ${rankClass}">
+                        <div class="podium-medal">${medal}</div>
+                        <div class="podium-rank-label">RANK #${rankNum}</div>
+                        <div class="podium-name" title="${name}">${name}</div>
+                        <div class="podium-score-container">
+                            <div class="podium-score-val">${val}</div>
+                            <div class="podium-score-lbl">${scoreLabel}</div>
+                        </div>
+                    </div>
+                `;
+            };
+
+            const secondHTML = createCardHTML(second, 'rank-2', '🥈', 2);
+            const firstHTML = createCardHTML(first, 'rank-1', '🥇', 1);
+            const thirdHTML = createCardHTML(third, 'rank-3', '🥉', 3);
+
+            podiumEl.innerHTML = secondHTML + firstHTML + thirdHTML;
+        }
+
         function renderLeetcodePreview(thead, tbody, scores) {
             const sorted = [...scores].sort((a, b) => (b.lc_raw || 0) - (a.lc_raw || 0));
             const modeCopy = document.getElementById('mockModeCopy');
             modeCopy.className = 'mock-mode-copy';
             modeCopy.textContent = 'LEETCODE_LEADERBOARD';
 
-            document.getElementById('statLabel1').textContent = 'TOTAL_MEMBERS';
-            document.getElementById('statLabel2').textContent = 'TOP_LC_RAW';
-            document.getElementById('statLabel3').textContent = 'LC_RAW_TOTAL';
-
-            const totalLCRaw = scores.reduce((acc, s) => acc + (s.lc_raw || 0), 0);
-
-            document.getElementById('statMembers').textContent = scores.length || '--';
-            document.getElementById('statTopCF').textContent = scores.length
-                ? Math.max(...scores.map(s => s.lc_raw || 0))
-                : '--';
-            document.getElementById('statMaxLC').textContent = totalLCRaw || '--';
+            renderPodium(sorted, 'LC RAW SCORE');
 
             thead.innerHTML = `
                 <tr>
@@ -1682,17 +1759,7 @@
             modeCopy.className = 'mock-mode-copy';
             modeCopy.textContent = 'CODEFORCES_LEADERBOARD';
 
-            document.getElementById('statLabel1').textContent = 'TOTAL_MEMBERS';
-            document.getElementById('statLabel2').textContent = 'TOP_CF_RAW';
-            document.getElementById('statLabel3').textContent = 'CF_RAW_TOTAL';
-
-            const totalCFRaw = scores.reduce((acc, s) => acc + (s.cf_raw || 0), 0);
-
-            document.getElementById('statMembers').textContent = scores.length || '--';
-            document.getElementById('statTopCF').textContent = scores.length
-                ? Math.max(...scores.map(s => s.cf_raw || 0))
-                : '--';
-            document.getElementById('statMaxLC').textContent = totalCFRaw || '--';
+            renderPodium(sorted, 'CF RAW SCORE');
 
             thead.innerHTML = `
                 <tr>
@@ -1727,16 +1794,8 @@
             const modeCopy = document.getElementById('mockModeCopy');
             modeCopy.className = 'mock-mode-copy';
             modeCopy.textContent = 'OVERALL_LEADERBOARD';
-            document.getElementById('statLabel1').textContent = 'TOTAL_MEMBERS';
-            document.getElementById('statLabel2').textContent = 'TOP_CF_PTS';
-            document.getElementById('statLabel3').textContent = 'MAX_LC_PTS';
-            document.getElementById('statMembers').textContent = scores.length || '--';
-            document.getElementById('statTopCF').textContent = scores.length
-                ? Math.max(...scores.map(s => s.codeforces_points || 0))
-                : '--';
-            document.getElementById('statMaxLC').textContent = scores.length
-                ? Math.max(...scores.map(s => s.leetcode_points || 0))
-                : '--';
+
+            renderPodium(scores, 'NORMALIZED PTS');
 
             thead.innerHTML = `
                 <tr>
@@ -1773,21 +1832,11 @@
         }
 
         function renderWeeklyPreview(thead, tbody, scores) {
-            const weekStart = leaderboardPreviewState.weeklyMeta?.week_start || null;
-            const weekEnd = leaderboardPreviewState.weeklyMeta?.week_end || null;
-            const weekRange = formatWeekRange(weekStart, weekEnd);
             const modeCopy = document.getElementById('mockModeCopy');
-
             modeCopy.className = 'mock-mode-copy weekly';
             modeCopy.innerHTML = '';
-            document.getElementById('statLabel1').textContent = 'WEEKLY_MEMBERS';
-            document.getElementById('statLabel2').textContent = 'TOP_WEEKLY_PTS';
-            document.getElementById('statLabel3').textContent = 'WEEK_WINDOW';
-            document.getElementById('statMembers').textContent = scores.length || '--';
-            document.getElementById('statTopCF').textContent = scores.length
-                ? Math.max(...scores.map(s => s.total_points || 0))
-                : '--';
-            document.getElementById('statMaxLC').textContent = weekRange || '--';
+
+            renderPodium(scores, 'WEEKLY SCORE');
 
             thead.innerHTML = `
                 <tr>
