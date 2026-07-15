@@ -217,7 +217,7 @@
             if (active.cf) {
                 const handle = document.getElementById("cfHandle").value.trim();
                 if (!handle) {
-                    statusMsg.textContent = "// Enter your Codeforces handle.";
+                    statusMsg.textContent = "Enter your Codeforces handle.";
                     return;
                 }
                 rows.push({ user_id: user.id, platform: "codeforces", handle });
@@ -226,14 +226,14 @@
             if (active.lc) {
                 const handle = document.getElementById("lcHandle").value.trim();
                 if (!handle) {
-                    statusMsg.textContent = "// Enter your LeetCode handle.";
+                    statusMsg.textContent = "Enter your LeetCode handle.";
                     return;
                 }
                 rows.push({ user_id: user.id, platform: "leetcode", handle });
             }
 
             if (rows.length === 0) {
-                statusMsg.textContent = "// Select at least one platform.";
+                statusMsg.textContent = "Select at least one platform.";
                 return;
             }
 
@@ -242,20 +242,20 @@
                 .upsert(rows, { onConflict: "user_id,platform" });
 
             if (error) {
-                statusMsg.textContent = "// " + error.message;
+                statusMsg.textContent = error.message;
                 return;
             }
 
-            statusMsg.textContent = "// Accounts linked. Syncing submissions...";
+            statusMsg.textContent = "Accounts linked. Syncing submissions...";
 
             const syncResult = await window.syncUserLeaderboardData({ userId: user.id });
 
             if (syncResult?.errors?.length) {
-                statusMsg.textContent = "// Accounts linked, but sync failed. Please try refreshing once.";
+                statusMsg.textContent = "Accounts linked, but sync failed. Please try refreshing once.";
                 return;
             }
 
-            statusMsg.textContent = "// Accounts linked and synced. Redirecting...";
+            statusMsg.textContent = "Accounts linked and synced. Redirecting...";
 
             window.location.href = "./dashboard.html";
         }

@@ -228,14 +228,14 @@
 <body>
     <nav class="navbar" id="appNavbar"></nav>
     <div class="main">
-        <div class="section-title">// CODEFORCES_DATA</div>
+        <div class="section-title">CODEFORCES_DATA</div>
         <div class="summary">
             <div class="summary-card">
-                <div class="summary-label">// HANDLE</div>
+                <div class="summary-label">HANDLE</div>
                 <div class="summary-value" id="cfHandle">N/A</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">// SOLVED_PROBLEMS</div>
+                <div class="summary-label">SOLVED_PROBLEMS</div>
                 <div class="summary-value" id="cfSolvedCount">0</div>
             </div>
         </div>
@@ -250,7 +250,7 @@
                     </tr>
                 </thead>
                 <tbody id="cfSolvedBody">
-                    <tr><td colspan="4" class="empty">// LOADING SOLVED PROBLEMS...</td></tr>
+                    <tr><td colspan="4" class="empty">LOADING SOLVED PROBLEMS...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -267,7 +267,7 @@
             const body = document.getElementById("cfSolvedBody");
 
             if (!cfAccount) {
-                body.innerHTML = `<tr><td colspan="4" class="empty">// CODEFORCES ACCOUNT NOT LINKED</td></tr>`;
+                body.innerHTML = `<tr><td colspan="4" class="empty">CODEFORCES ACCOUNT NOT LINKED</td></tr>`;
                 return;
             }
 
@@ -281,14 +281,14 @@
                 .order("solved_at", { ascending: false });
 
             if (error || !solvedProblems) {
-                body.innerHTML = `<tr><td colspan="4" class="empty">// COULD NOT LOAD CODEFORCES DATA</td></tr>`;
+                body.innerHTML = `<tr><td colspan="4" class="empty">COULD NOT LOAD CODEFORCES DATA</td></tr>`;
                 return;
             }
 
             document.getElementById("cfSolvedCount").textContent = solvedProblems.length;
 
             if (solvedProblems.length === 0) {
-                body.innerHTML = `<tr><td colspan="4" class="empty">// NO CODEFORCES PROBLEMS STORED YET</td></tr>`;
+                body.innerHTML = `<tr><td colspan="4" class="empty">NO CODEFORCES PROBLEMS STORED YET</td></tr>`;
                 return;
             }
 

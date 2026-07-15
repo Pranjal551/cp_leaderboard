@@ -238,14 +238,14 @@
 <body>
     <nav class="navbar" id="appNavbar"></nav>
     <div class="main">
-        <div class="section-title">// LEETCODE_DATA</div>
+        <div class="section-title">LEETCODE_DATA</div>
         <div class="summary">
             <div class="summary-card">
-                <div class="summary-label">// HANDLE</div>
+                <div class="summary-label">HANDLE</div>
                 <div class="summary-value" id="lcHandle">N/A</div>
             </div>
             <div class="summary-card">
-                <div class="summary-label">// SOLVED_PROBLEMS</div>
+                <div class="summary-label">SOLVED_PROBLEMS</div>
                 <div class="summary-value" id="lcSolvedCount">0</div>
                 <div class="summary-sub">stored in database</div>
             </div>
@@ -262,7 +262,7 @@
                     </tr>
                 </thead>
                 <tbody id="lcSolvedBody">
-                    <tr><td colspan="4" class="empty">// LOADING SOLVED PROBLEMS...</td></tr>
+                    <tr><td colspan="4" class="empty">LOADING SOLVED PROBLEMS...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -279,7 +279,7 @@
             const body = document.getElementById("lcSolvedBody");
 
             if (!lcAccount) {
-                body.innerHTML = `<tr><td colspan="4" class="empty">// LEETCODE ACCOUNT NOT LINKED</td></tr>`;
+                body.innerHTML = `<tr><td colspan="4" class="empty">LEETCODE ACCOUNT NOT LINKED</td></tr>`;
                 return;
             }
 
@@ -293,14 +293,14 @@
                 .order("solved_at", { ascending: false });
 
             if (error || !solvedProblems) {
-                body.innerHTML = `<tr><td colspan="4" class="empty">// COULD NOT LOAD LEETCODE DATA</td></tr>`;
+                body.innerHTML = `<tr><td colspan="4" class="empty">COULD NOT LOAD LEETCODE DATA</td></tr>`;
                 return;
             }
 
             document.getElementById("lcSolvedCount").textContent = solvedProblems.length;
 
             if (solvedProblems.length === 0) {
-                body.innerHTML = `<tr><td colspan="4" class="empty">// NO LEETCODE PROBLEMS STORED YET</td></tr>`;
+                body.innerHTML = `<tr><td colspan="4" class="empty">NO LEETCODE PROBLEMS STORED YET</td></tr>`;
                 return;
             }
 

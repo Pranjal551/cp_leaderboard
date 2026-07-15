@@ -90,14 +90,6 @@ Quick frontend run (using currently configured hosted Supabase backend):
 
 For fully local backend testing, run Supabase locally and point frontend/lib/supabase.js to your local project URL and anon key.
 
-## Current Status
-
-This project is actively working for student and admin flows.
-Known improvement areas:
-
-- Align schema.sql with latest migration/runtime shape.
-- Add scheduled sync jobs and automated tests.
-
 ## Roadmap
 
 - Add charts and trend analytics per student.

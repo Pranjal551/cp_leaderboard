@@ -259,11 +259,11 @@
     <div class="main">
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-label">// YOUR_CF_RAW</div>
+                <div class="stat-label">YOUR_CF_RAW</div>
                 <div class="stat-value cf" id="statMyCF">N/A</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">// YOUR_LC_RAW</div>
+                <div class="stat-label">YOUR_LC_RAW</div>
                 <div class="stat-value lc" id="statMyLC">N/A</div>
             </div>
         </div>
@@ -282,7 +282,7 @@
                     </tr>
                 </thead>
                 <tbody id="lbBody">
-                    <tr><td colspan="3" class="empty">// LOADING LEADERBOARD...</td></tr>
+                    <tr><td colspan="3" class="empty">LOADING LEADERBOARD...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -300,7 +300,7 @@
 
             if (error || !scores || scores.length === 0) {
                 document.getElementById("lbBody").innerHTML =
-                    `<tr><td colspan="3" class="empty">// NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
+                    `<tr><td colspan="3" class="empty">NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
                 return;
             }
 

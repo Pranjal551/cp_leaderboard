@@ -417,13 +417,13 @@
         <span class="brand-divider" aria-hidden="true"></span>
         <img src="./asset/nmlogo.png" alt="NM Logo" class="brand-logo brand-logo-nm" />
       </div>
-      <div class="meta" id="adminMeta">// NOT LOGGED IN</div>
+      <div class="meta" id="adminMeta">NOT LOGGED IN</div>
     </div>
 
     <div class="panel login-panel" id="loginPanel">
       <div class="login-hero">
         <div class="login-title">ADMIN <span class="accent">DASHBOARD</span></div>
-        <div class="login-sub">// AUTHENTICATED ACCESS TO STUDENT LEADERBOARD DATA</div>
+        <div class="login-sub">AUTHENTICATED ACCESS TO STUDENT LEADERBOARD DATA</div>
       </div>
 
       <div class="mock-login-wrap">
@@ -461,7 +461,7 @@
         <div class="search-wrap">
           <input id="searchInput" class="search-input" type="text" placeholder="Search by name, handle, or SAP ID" />
         </div>
-        <div class="meta" id="weekLabel">// WEEK: --</div>
+        <div class="meta" id="weekLabel">WEEK: --</div>
       </div>
       <div class="status" id="dashboardStatus"></div>
       <div class="table-wrap">
@@ -481,14 +481,14 @@
             </tr>
           </thead>
           <tbody id="studentsBody">
-            <tr><td colspan="10">// NO DATA</td></tr>
+            <tr><td colspan="10">NO DATA</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="submissions-panel hidden" id="submissionsPanel">
         <div class="submissions-head">
-          <div class="submissions-title" id="submissionsTitle">// SELECT A STUDENT TO VIEW SUBMISSIONS</div>
+          <div class="submissions-title" id="submissionsTitle">SELECT A STUDENT TO VIEW SUBMISSIONS</div>
           <div class="meta" id="submissionsMeta"></div>
         </div>
         <div class="status" id="submissionsStatus"></div>
@@ -585,7 +585,7 @@
     }
 
     function showDashboard(adminId) {
-      adminMeta.textContent = `// LOGGED IN AS: ${adminId}`;
+      adminMeta.textContent = `LOGGED IN AS: ${adminId}`;
       loginPanel.classList.add("hidden");
       dashboardPanel.classList.remove("hidden");
     }
@@ -662,13 +662,13 @@
       const filteredStudents = getFilteredStudents(students);
 
       if (latestWeek?.week_start && latestWeek?.week_end) {
-        weekLabel.textContent = `// WEEK: ${latestWeek.week_start} -> ${latestWeek.week_end}`;
+        weekLabel.textContent = `WEEK: ${latestWeek.week_start} -> ${latestWeek.week_end}`;
       } else {
-        weekLabel.textContent = "// WEEK: NO WEEKLY DATA";
+        weekLabel.textContent = "WEEK: NO WEEKLY DATA";
       }
 
       if (filteredStudents.length === 0) {
-        studentsBody.innerHTML = '<tr><td colspan="10">// NO STUDENTS FOUND FOR THIS SEMESTER</td></tr>';
+        studentsBody.innerHTML = '<tr><td colspan="10">NO STUDENTS FOUND FOR THIS SEMESTER</td></tr>';
         return;
       }
 
@@ -715,7 +715,7 @@
 
     function renderSubmissionList(listElement, items, platform) {
       if (!items || items.length === 0) {
-        listElement.innerHTML = '<div class="submission-item">// NO SUBMISSIONS</div>';
+        listElement.innerHTML = '<div class="submission-item">NO SUBMISSIONS</div>';
         return;
       }
 
@@ -747,7 +747,7 @@
       adminState.selectedUserId = null;
       submissionsPanel.classList.add("hidden");
       submissionsStatus.textContent = "";
-      submissionsTitle.textContent = "// SELECT A STUDENT TO VIEW SUBMISSIONS";
+      submissionsTitle.textContent = "SELECT A STUDENT TO VIEW SUBMISSIONS";
       submissionsMeta.textContent = "";
       cfSubmissionsList.innerHTML = "";
       lcSubmissionsList.innerHTML = "";
@@ -762,13 +762,13 @@
       renderStudents();
 
       submissionsPanel.classList.remove("hidden");
-      submissionsStatus.textContent = "// Loading submissions...";
+      submissionsStatus.textContent = "Loading submissions...";
       cfSubmissionsList.innerHTML = "";
       lcSubmissionsList.innerHTML = "";
 
       if (adminState.submissionsCache[userId]) {
         renderUserSubmissions(adminState.submissionsCache[userId]);
-        submissionsStatus.textContent = "// Showing cached submissions.";
+        submissionsStatus.textContent = "Showing cached submissions.";
         return;
       }
 
@@ -781,17 +781,17 @@
 
         adminState.submissionsCache[userId] = payload;
         renderUserSubmissions(payload);
-        submissionsStatus.textContent = "// Submissions loaded.";
+        submissionsStatus.textContent = "Submissions loaded.";
       } catch (error) {
-        submissionsStatus.textContent = `// ${error.message}`;
+        submissionsStatus.textContent = `${error.message}`;
       }
     }
 
     function renderUserSubmissions(payload) {
       const name = payload.full_name || "Unknown";
       const semester = payload.semester ?? "-";
-      submissionsTitle.textContent = `// SUBMISSIONS: ${name} (SEM ${semester})`;
-      submissionsMeta.textContent = `// CF: ${payload.codeforces_handle || "-"} | LC: ${payload.leetcode_handle || "-"}`;
+      submissionsTitle.textContent = `SUBMISSIONS: ${name} (SEM ${semester})`;
+      submissionsMeta.textContent = `CF: ${payload.codeforces_handle || "-"} | LC: ${payload.leetcode_handle || "-"}`;
 
       renderSubmissionList(cfSubmissionsList, payload.codeforces_submissions || [], "codeforces");
       renderSubmissionList(lcSubmissionsList, payload.leetcode_submissions || [], "leetcode");
@@ -800,11 +800,11 @@
     async function loadAdminData() {
       const token = getSessionToken();
       if (!token) {
-        showLogin("// Sign in from the main login interface.");
+        showLogin("Sign in from the main login interface.");
         return;
       }
 
-      dashboardStatus.textContent = "// Loading student data...";
+      dashboardStatus.textContent = "Loading student data...";
 
       try {
         const payload = await callFunction("admin-students-overview", {
@@ -816,11 +816,11 @@
         adminState.payload = payload;
         adminState.submissionsCache = {};
         populateSemesterFilter(payload.students || []);
-        dashboardStatus.textContent = `// Loaded ${payload.total_students ?? 0} student records.`;
+        dashboardStatus.textContent = `Loaded ${payload.total_students ?? 0} student records.`;
         renderStudents();
       } catch (error) {
         clearSession();
-        showLogin(`// ${error.message} Sign in again.`);
+        showLogin(`${error.message} Sign in again.`);
       }
     }
 
@@ -841,7 +841,7 @@
     document.getElementById("logoutBtn").addEventListener("click", () => {
       clearSession();
       hideSubmissionsPanel();
-      showLogin("// Logged out.");
+      showLogin("Logged out.");
     });
 
     (function init() {
@@ -849,7 +849,7 @@
       const savedToken = getSessionToken();
 
       if (!savedAdminId || !savedToken) {
-        showLogin("// Sign in with admin credentials from the main login screen.");
+        showLogin("Sign in with admin credentials from the main login screen.");
         return;
       }
 

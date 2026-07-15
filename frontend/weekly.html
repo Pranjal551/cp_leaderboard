@@ -243,17 +243,17 @@
     <nav class="navbar" id="appNavbar"></nav>
     <div class="main">
         <div class="hero">
-            <div class="section-title">// CURRENT_WEEK</div>
+            <div class="section-title">CURRENT_WEEK</div>
             <div class="hero-title">WEEKLY LEADERBOARD</div>
             <div class="hero-copy">Fresh points for the active Sunday-to-Saturday window, ranked across Codeforces and LeetCode solves.</div>
         </div>
         <div class="stats">
             <div class="stat-card">
-                <div class="stat-label">// YOUR_WEEKLY_POINTS</div>
+                <div class="stat-label">YOUR_WEEKLY_POINTS</div>
                 <div class="stat-value cyan" id="statMyWeekly">0</div>
             </div>
             <div class="stat-card">
-                <div class="stat-label">// WEEK_RANGE</div>
+                <div class="stat-label">WEEK_RANGE</div>
                 <div class="stat-value dim" id="statWeekRange">--</div>
             </div>
         </div>
@@ -267,7 +267,7 @@
                     </tr>
                 </thead>
                 <tbody id="lbBody">
-                    <tr><td colspan="3" class="empty">// LOADING WEEKLY LEADERBOARD...</td></tr>
+                    <tr><td colspan="3" class="empty">LOADING WEEKLY LEADERBOARD...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -296,7 +296,7 @@
             if (error || !Array.isArray(leaderboard) || leaderboard.length === 0) {
                 document.getElementById("statMyWeekly").textContent = "0";
                 document.getElementById("lbBody").innerHTML =
-                    `<tr><td colspan="3" class="empty">// NO WEEKLY DATA YET - SOLVE SOMETHING THIS WEEK</td></tr>`;
+                    `<tr><td colspan="3" class="empty">NO WEEKLY DATA YET - SOLVE SOMETHING THIS WEEK</td></tr>`;
                 return;
             }
 

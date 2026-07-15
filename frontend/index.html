@@ -571,7 +571,7 @@
             height: 18px;
             color: #ffca28;
             margin-bottom: 2px;
-            animation: crown-bob 2s ease-in-out infinite;
+            animation: crown-spin-y 4s linear infinite;
             filter: drop-shadow(0 0 6px rgba(255, 161, 22, 0.8));
             user-select: none;
         }
@@ -589,9 +589,9 @@
             100% { transform: rotate(360deg); }
         }
 
-        @keyframes crown-bob {
-            0%, 100% { transform: translateY(0) rotate(-3deg); }
-            50% { transform: translateY(-5px) rotate(3deg); }
+        @keyframes crown-spin-y {
+            0% { transform: rotateY(0deg); }
+            100% { transform: rotateY(360deg); }
         }
 
         /* ── TICKER ──────────────────────────────────────────── */
@@ -992,22 +992,24 @@
                     <div class="mock-toggle-group" role="tablist" aria-label="Leaderboard preview mode">
                         <button class="mock-toggle-btn active" id="overallToggle" type="button">OVERALL</button>
                         <button class="mock-toggle-btn" id="weeklyToggle" type="button">WEEKLY</button>
+                        <button class="mock-toggle-btn" id="leetcodeToggle" type="button">LEETCODE</button>
+                        <button class="mock-toggle-btn" id="codeforcesToggle" type="button">CODEFORCES</button>
                     </div>
-                    <div class="mock-mode-copy" id="mockModeCopy">// OVERALL_LEADERBOARD</div>
+                    <div class="mock-mode-copy" id="mockModeCopy">OVERALL_LEADERBOARD</div>
                 </div>
 
                 <!-- Stat chips -->
                 <div class="mock-stats">
                     <div class="mock-stat">
-                        <div class="mock-stat-label" id="statLabel1">// TOTAL_MEMBERS</div>
+                        <div class="mock-stat-label" id="statLabel1">TOTAL_MEMBERS</div>
                         <div id="statMembers" style="font-size:1.1rem;font-weight:700;color:#00f2ea;margin-top:4px;">—</div>
                     </div>
                     <div class="mock-stat">
-                        <div class="mock-stat-label" id="statLabel2">// TOP_CF_PTS</div>
+                        <div class="mock-stat-label" id="statLabel2">TOP_CF_PTS</div>
                         <div id="statTopCF" style="font-size:1.1rem;font-weight:700;color:#a855f7;margin-top:4px;">—</div>
                     </div>
                     <div class="mock-stat">
-                        <div class="mock-stat-label" id="statLabel3">// MAX_LC_PTS</div>
+                        <div class="mock-stat-label" id="statLabel3">MAX_LC_PTS</div>
                         <div id="statMaxLC" style="font-size:1.1rem;font-weight:700;color:#f7941e;margin-top:4px;">—</div>
                     </div>
                 </div>
@@ -1041,7 +1043,7 @@
                         </tr>
                     </thead>
                     <tbody id="lbBody">
-                        <tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// LOADING...</td></tr>
+                        <tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">LOADING...</td></tr>
                     </tbody>
                 </table>
 
@@ -1099,7 +1101,7 @@
 
                 <div id="usernameWrap" class="input-group" style="display:none">
                     <input type="text" id="username" placeholder=" ">
-                    <label for="username">// USERNAME</label>
+                    <label for="username">USERNAME</label>
                 </div>
 
                 <div id="semesterWrap" class="input-group" style="display:none">
@@ -1114,22 +1116,22 @@
                         <option value="7">Semester 7</option>
                         <option value="8">Semester 8</option>
                     </select>
-                    <label for="semester">// SEMESTER</label>
+                    <label for="semester">SEMESTER</label>
                 </div>
 
                 <div id="sapIdWrap" class="input-group" style="display:none">
                     <input type="text" id="sapId" placeholder=" ">
-                    <label for="sapId">// SAP ID</label>
+                    <label for="sapId">SAP ID</label>
                 </div>
 
                 <div class="input-group">
                     <input type="text" id="email" placeholder=" " required>
-                    <label for="email">// EMAIL</label>
+                    <label for="email">EMAIL</label>
                 </div>
 
                 <div class="input-group">
                     <input type="password" id="password" placeholder=" " required>
-                    <label for="password">// PASSWORD</label>
+                    <label for="password">PASSWORD</label>
                 </div>
 
                 <button type="submit" class="btn-initiate" data-text="INITIATE_CONNECTION">INITIATE_CONNECTION</button>
@@ -1240,11 +1242,11 @@
             if (isLogin && !isResetMode) {
                 emailInput.type = "text";
                 emailInput.autocomplete = "username";
-                emailLabel.textContent = "// EMAIL";
+                emailLabel.textContent = "EMAIL";
             } else {
                 emailInput.type = "email";
                 emailInput.autocomplete = "email";
-                emailLabel.textContent = "// EMAIL";
+                emailLabel.textContent = "EMAIL";
             }
 
             if (isResetMode) {
@@ -1607,29 +1609,127 @@
         }
 
         function renderLeaderboardPreview() {
-            const isWeekly = leaderboardPreviewState.activeMode === 'weekly';
-            const scores = isWeekly ? leaderboardPreviewState.weekly : leaderboardPreviewState.overall;
+            const mode = leaderboardPreviewState.activeMode;
             const thead = document.getElementById('lbHead');
             const tbody = document.getElementById('lbBody');
 
-            document.getElementById('overallToggle').classList.toggle('active', !isWeekly);
-            document.getElementById('weeklyToggle').classList.toggle('active', isWeekly);
+            document.getElementById('overallToggle').classList.toggle('active', mode === 'overall');
+            document.getElementById('weeklyToggle').classList.toggle('active', mode === 'weekly');
+            document.getElementById('leetcodeToggle').classList.toggle('active', mode === 'leetcode');
+            document.getElementById('codeforcesToggle').classList.toggle('active', mode === 'codeforces');
 
-            if (isWeekly) {
-                renderWeeklyPreview(thead, tbody, scores);
+            if (mode === 'weekly') {
+                renderWeeklyPreview(thead, tbody, leaderboardPreviewState.weekly);
+            } else if (mode === 'leetcode') {
+                renderLeetcodePreview(thead, tbody, leaderboardPreviewState.overall);
+            } else if (mode === 'codeforces') {
+                renderCodeforcesPreview(thead, tbody, leaderboardPreviewState.overall);
+            } else {
+                renderOverallPreview(thead, tbody, leaderboardPreviewState.overall);
+            }
+        }
+
+        function renderLeetcodePreview(thead, tbody, scores) {
+            const sorted = [...scores].sort((a, b) => (b.lc_raw || 0) - (a.lc_raw || 0));
+            const modeCopy = document.getElementById('mockModeCopy');
+            modeCopy.className = 'mock-mode-copy';
+            modeCopy.textContent = 'LEETCODE_LEADERBOARD';
+
+            document.getElementById('statLabel1').textContent = 'TOTAL_MEMBERS';
+            document.getElementById('statLabel2').textContent = 'TOP_LC_RAW';
+            document.getElementById('statLabel3').textContent = 'LC_RAW_TOTAL';
+
+            const totalLCRaw = scores.reduce((acc, s) => acc + (s.lc_raw || 0), 0);
+
+            document.getElementById('statMembers').textContent = scores.length || '--';
+            document.getElementById('statTopCF').textContent = scores.length
+                ? Math.max(...scores.map(s => s.lc_raw || 0))
+                : '--';
+            document.getElementById('statMaxLC').textContent = totalLCRaw || '--';
+
+            thead.innerHTML = `
+                <tr>
+                    <th>#</th>
+                    <th>HANDLE</th>
+                    <th style="text-align:right">LeetCode Raw Score</th>
+                </tr>
+            `;
+
+            if (!sorted.length) {
+                tbody.innerHTML =
+                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
                 return;
             }
 
-            renderOverallPreview(thead, tbody, scores);
+            tbody.innerHTML = sorted.map((s, i) => {
+                const isMe = s.user_id === leaderboardPreviewState.myId;
+                const rank = String(i + 1).padStart(2, '0');
+                const name = s.handle || s.full_name || '-';
+                const lcPoints = s.lc_raw ?? 0;
+                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
+                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
+                return `<tr style="${rowStyle}">
+                    <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
+                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
+                    <td style="color:#00f2ea;text-align:right">${lcPoints}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderCodeforcesPreview(thead, tbody, scores) {
+            const sorted = [...scores].sort((a, b) => (b.cf_raw || 0) - (a.cf_raw || 0));
+            const modeCopy = document.getElementById('mockModeCopy');
+            modeCopy.className = 'mock-mode-copy';
+            modeCopy.textContent = 'CODEFORCES_LEADERBOARD';
+
+            document.getElementById('statLabel1').textContent = 'TOTAL_MEMBERS';
+            document.getElementById('statLabel2').textContent = 'TOP_CF_RAW';
+            document.getElementById('statLabel3').textContent = 'CF_RAW_TOTAL';
+
+            const totalCFRaw = scores.reduce((acc, s) => acc + (s.cf_raw || 0), 0);
+
+            document.getElementById('statMembers').textContent = scores.length || '--';
+            document.getElementById('statTopCF').textContent = scores.length
+                ? Math.max(...scores.map(s => s.cf_raw || 0))
+                : '--';
+            document.getElementById('statMaxLC').textContent = totalCFRaw || '--';
+
+            thead.innerHTML = `
+                <tr>
+                    <th>#</th>
+                    <th>HANDLE</th>
+                    <th style="text-align:right">Codeforces Raw Score</th>
+                </tr>
+            `;
+
+            if (!sorted.length) {
+                tbody.innerHTML =
+                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = sorted.map((s, i) => {
+                const isMe = s.user_id === leaderboardPreviewState.myId;
+                const rank = String(i + 1).padStart(2, '0');
+                const name = s.handle || s.full_name || '-';
+                const cfPoints = s.cf_raw ?? 0;
+                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
+                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
+                return `<tr style="${rowStyle}">
+                    <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
+                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
+                    <td style="color:#00f2ea;text-align:right">${cfPoints}</td>
+                </tr>`;
+            }).join('');
         }
 
         function renderOverallPreview(thead, tbody, scores) {
             const modeCopy = document.getElementById('mockModeCopy');
             modeCopy.className = 'mock-mode-copy';
-            modeCopy.textContent = '// OVERALL_LEADERBOARD';
-            document.getElementById('statLabel1').textContent = '// TOTAL_MEMBERS';
-            document.getElementById('statLabel2').textContent = '// TOP_CF_PTS';
-            document.getElementById('statLabel3').textContent = '// MAX_LC_PTS';
+            modeCopy.textContent = 'OVERALL_LEADERBOARD';
+            document.getElementById('statLabel1').textContent = 'TOTAL_MEMBERS';
+            document.getElementById('statLabel2').textContent = 'TOP_CF_PTS';
+            document.getElementById('statLabel3').textContent = 'MAX_LC_PTS';
             document.getElementById('statMembers').textContent = scores.length || '--';
             document.getElementById('statTopCF').textContent = scores.length
                 ? Math.max(...scores.map(s => s.codeforces_points || 0))
@@ -1653,7 +1753,7 @@
 
             if (!scores.length) {
                 tbody.innerHTML =
-                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
+                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
                 return;
             }
 
@@ -1680,9 +1780,9 @@
 
             modeCopy.className = 'mock-mode-copy weekly';
             modeCopy.innerHTML = '';
-            document.getElementById('statLabel1').textContent = '// WEEKLY_MEMBERS';
-            document.getElementById('statLabel2').textContent = '// TOP_WEEKLY_PTS';
-            document.getElementById('statLabel3').textContent = '// WEEK_WINDOW';
+            document.getElementById('statLabel1').textContent = 'WEEKLY_MEMBERS';
+            document.getElementById('statLabel2').textContent = 'TOP_WEEKLY_PTS';
+            document.getElementById('statLabel3').textContent = 'WEEK_WINDOW';
             document.getElementById('statMembers').textContent = scores.length || '--';
             document.getElementById('statTopCF').textContent = scores.length
                 ? Math.max(...scores.map(s => s.total_points || 0))
@@ -1699,7 +1799,7 @@
 
             if (!scores.length) {
                 tbody.innerHTML =
-                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO WEEKLY DATA YET</td></tr>`;
+                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">NO WEEKLY DATA YET</td></tr>`;
                 return;
             }
 
@@ -1764,6 +1864,16 @@
 
         document.getElementById('weeklyToggle').addEventListener('click', () => {
             leaderboardPreviewState.activeMode = 'weekly';
+            renderLeaderboardPreview();
+        });
+
+        document.getElementById('leetcodeToggle').addEventListener('click', () => {
+            leaderboardPreviewState.activeMode = 'leetcode';
+            renderLeaderboardPreview();
+        });
+
+        document.getElementById('codeforcesToggle').addEventListener('click', () => {
+            leaderboardPreviewState.activeMode = 'codeforces';
             renderLeaderboardPreview();
         });
 

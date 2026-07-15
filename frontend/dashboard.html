@@ -379,27 +379,27 @@
     <nav class="navbar" id="appNavbar"></nav>
 
     <div class="main">
-        <div id="syncStatus" style="font-size:0.65rem; color:rgba(255,255,255,0.3); margin-bottom:20px; letter-spacing:0.05em;">// LOADING SYNC STATUS...</div>
+        <div id="syncStatus" style="font-size:0.65rem; color:rgba(255,255,255,0.3); margin-bottom:20px; letter-spacing:0.05em;">LOADING SYNC STATUS...</div>
 
-        <div class="section-title">// YOUR_STATS</div>
+        <div class="section-title">YOUR_STATS</div>
         <div class="cards">
             <div class="card">
-                <div class="card-label">// CF_RAW</div>
+                <div class="card-label">CF_RAW</div>
                 <div class="card-value cf" id="cfPoints">-</div>
                 <div class="card-sub" id="cfHandle">-</div>
             </div>
             <div class="card">
-                <div class="card-label">// LC_RAW</div>
+                <div class="card-label">LC_RAW</div>
                 <div class="card-value lc" id="lcPoints">-</div>
                 <div class="card-sub" id="lcHandle">-</div>
             </div>
             <div class="card">
-                <div class="card-label">// TOTAL_POINTS</div>
+                <div class="card-label">TOTAL_NORMALIZED_POINTS</div>
                 <div class="card-value total" id="totalPoints">-</div>
             </div>
         </div>
 
-        <div class="section-title">// QUESTIONS_SOLVED</div>
+        <div class="section-title">QUESTIONS_SOLVED</div>
         <div class="cards">
             <div class="card">
                 <div class="card-value cf" id="cfSolvedCount">-</div>
@@ -417,16 +417,16 @@
 
         <div class="info-columns">
             <div class="info-column">
-                <div class="section-title">// LINKED_PLATFORMS</div>
+                <div class="section-title">LINKED_PLATFORMS</div>
                 <div class="handles-section" id="handlesList">
-                    <div class="empty">// Loading...</div>
+                    <div class="empty">Loading...</div>
                 </div>
             </div>
 
             <div class="info-divider" aria-hidden="true"></div>
 
             <div class="info-column">
-                <div class="section-title">// ACADEMIC_INFO</div>
+                <div class="section-title">ACADEMIC_INFO</div>
                 <div class="handles-section" id="academicInfo">
                     <div class="handle-row">
                         <span class="handle-platform">SEMESTER</span>
@@ -511,7 +511,7 @@
 
             const list = document.getElementById("handlesList");
             if (!accounts || accounts.length === 0) {
-                list.innerHTML = '<div class="empty">// No platforms linked yet.</div>';
+                list.innerHTML = '<div class="empty">No platforms linked yet.</div>';
             } else {
                 list.innerHTML = accounts.map(a => `
                     <div class="handle-row">
@@ -530,15 +530,15 @@
 
             if (syncStatus) {
                 if (!accounts || accounts.length === 0) {
-                    syncStatus.textContent = "// Link a platform to start syncing submissions.";
+                    syncStatus.textContent = "Link a platform to start syncing submissions.";
                 } else if (syncPromise) {
                     
                 } else if (syncResult?.errors?.length) {
-                    syncStatus.textContent = "// Partial refresh completed. Some platforms may still be stale.";
+                    syncStatus.textContent = "Partial refresh completed. Some platforms may still be stale.";
                 } else if (syncResult) {
-                    syncStatus.textContent = "// Latest submissions synced.";
+                    syncStatus.textContent = "Latest submissions synced.";
                 } else {
-                    syncStatus.textContent = "// Showing current stored data.";
+                    syncStatus.textContent = "Showing current stored data.";
                 }
             }
 
@@ -551,14 +551,14 @@
             applyScores(scores);
             await loadSolvedCounts();
             if (syncStatus && scores?.last_updated && !syncResult?.errors?.length && !syncPromise) {
-                syncStatus.textContent = `// Last synced: ${new Date(scores.last_updated).toLocaleString()}`;
+                syncStatus.textContent = `Last synced: ${new Date(scores.last_updated).toLocaleString()}`;
             }
 
             if (syncPromise) {
                 const completedSync = await syncPromise;
 
                 if (completedSync?.errors?.length) {
-                    if (syncStatus) syncStatus.textContent = "// Partial refresh completed. Some platforms may still be stale.";
+                    if (syncStatus) syncStatus.textContent = "Partial refresh completed. Some platforms may still be stale.";
                     return;
                 }
 
@@ -571,7 +571,7 @@
                 applyScores(refreshedScores);
                 await loadSolvedCounts();
                 if (syncStatus && refreshedScores?.last_updated) {
-                    syncStatus.textContent = `// Last synced: ${new Date(refreshedScores.last_updated).toLocaleString()}`;
+                    syncStatus.textContent = `Last synced: ${new Date(refreshedScores.last_updated).toLocaleString()}`;
                 }
             }
         }
