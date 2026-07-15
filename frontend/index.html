@@ -453,9 +453,7 @@
             overflow: hidden;
         }
 
-        .podium-card:hover {
-            transform: translateY(-2px);
-        }
+
 
         .podium-card.rank-1 {
             background: rgba(255, 202, 40, 0.03);
@@ -476,27 +474,47 @@
             box-shadow: 0 0 16px rgba(244, 143, 95, 0.04);
         }
 
-        .podium-medal {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-            display: block;
-        }
-        
-        .podium-card.rank-1 .podium-medal {
-            filter: drop-shadow(0 0 8px rgba(255,202,40,0.5));
-        }
-        .podium-card.rank-2 .podium-medal {
-            filter: drop-shadow(0 0 8px rgba(224,224,224,0.4));
-        }
-        .podium-card.rank-3 .podium-medal {
-            filter: drop-shadow(0 0 8px rgba(244,143,95,0.4));
+        /* Ribbon badge in top-left corner */
+        .podium-ribbon {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 72px;
+            height: 72px;
+            overflow: hidden;
+            pointer-events: none;
         }
 
-        .podium-rank-label {
-            font-size: 0.55rem;
-            letter-spacing: 0.15em;
-            color: rgba(255,255,255,0.4);
-            margin-bottom: 4px;
+        .podium-ribbon span {
+            position: absolute;
+            top: 16px;
+            left: -20px;
+            width: 90px;
+            text-align: center;
+            font-size: 0.52rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            padding: 4px 0;
+            transform: rotate(-45deg);
+            transform-origin: center;
+        }
+
+        .podium-card.rank-1 .podium-ribbon span {
+            background: #ffca28;
+            color: #000;
+            box-shadow: 0 2px 6px rgba(255,202,40,0.4);
+        }
+
+        .podium-card.rank-2 .podium-ribbon span {
+            background: #c0c0c0;
+            color: #000;
+            box-shadow: 0 2px 6px rgba(192,192,192,0.3);
+        }
+
+        .podium-card.rank-3 .podium-ribbon span {
+            background: #cd7f32;
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(205,127,50,0.3);
         }
 
         .podium-name {
@@ -525,7 +543,7 @@
 
         .podium-card.rank-1 .podium-score-val { color: #ffca28; }
         .podium-card.rank-2 .podium-score-val { color: #e0e0e0; }
-        .podium-card.rank-3 .podium-score-val { color: #f48f5f; }
+        .podium-card.rank-3 .podium-score-val { color: #cd7f32; }
 
         .podium-score-lbl {
             font-size: 0.5rem;
@@ -1665,27 +1683,25 @@
 
             podiumEl.style.display = 'grid';
 
-            // Extract top 3
-            const first = scores[0] || null;
-            const second = scores[1] || null;
-            const third = scores[2] || null;
+            // Filter out entries with 0 score for the active mode
+            const getScore = (s) => {
+                if (leaderboardPreviewState.activeMode === 'leetcode') return s.lc_raw ?? 0;
+                if (leaderboardPreviewState.activeMode === 'codeforces') return s.cf_raw ?? 0;
+                return s.total_points ?? 0;
+            };
+            const nonZero = scores.filter(s => getScore(s) > 0);
 
-            const createCardHTML = (entry, rankClass, medal, rankNum) => {
-                if (!entry) {
-                    return `
-                        <div class="podium-card ${rankClass}" style="opacity: 0.35;">
-                            <div class="podium-medal">👤</div>
-                            <div class="podium-rank-label">RANK #${rankNum}</div>
-                            <div class="podium-name">Empty</div>
-                            <div class="podium-score-container">
-                                <div class="podium-score-val">—</div>
-                                <div class="podium-score-lbl">${scoreLabel}</div>
-                            </div>
-                        </div>
-                    `;
-                }
+            // Extract top 3
+            const first = nonZero[0] || null;
+            const second = nonZero[1] || null;
+            const third = nonZero[2] || null;
+
+            const createCardHTML = (entry, rankClass, rankNum) => {
+                const ribbonHTML = `<div class="podium-ribbon"><span>RANK ${rankNum}</span></div>`;
+                if (!entry) return '';
+
                 const name = entry.handle || entry.full_name || '-';
-                let val = '-';
+                let val;
                 if (leaderboardPreviewState.activeMode === 'weekly') {
                     val = entry.total_points ?? 0;
                 } else if (leaderboardPreviewState.activeMode === 'leetcode') {
@@ -1695,11 +1711,11 @@
                 } else {
                     val = entry.total_points ?? 0;
                 }
+                if (val === 0) val = '--';
 
                 return `
                     <div class="podium-card ${rankClass}">
-                        <div class="podium-medal">${medal}</div>
-                        <div class="podium-rank-label">RANK #${rankNum}</div>
+                        ${ribbonHTML}
                         <div class="podium-name" title="${name}">${name}</div>
                         <div class="podium-score-container">
                             <div class="podium-score-val">${val}</div>
@@ -1709,9 +1725,9 @@
                 `;
             };
 
-            const secondHTML = createCardHTML(second, 'rank-2', '🥈', 2);
-            const firstHTML = createCardHTML(first, 'rank-1', '🥇', 1);
-            const thirdHTML = createCardHTML(third, 'rank-3', '🥉', 3);
+            const secondHTML = createCardHTML(second, 'rank-2', 2);
+            const firstHTML = createCardHTML(first, 'rank-1', 1);
+            const thirdHTML = createCardHTML(third, 'rank-3', 3);
 
             podiumEl.innerHTML = secondHTML + firstHTML + thirdHTML;
         }
