@@ -19,8 +19,7 @@ serve(async (req) => {
   try {
     const { data: scores, error } = await supabase
       .from("user_scores")
-      .select("user_id, codeforces_points, leetcode_points, total_points")
-      .limit(10);
+      .select("user_id, codeforces_points, leetcode_points, total_points, cf_raw, lc_raw");
 
     if (error) throw error;
 
@@ -69,15 +68,13 @@ serve(async (req) => {
 
     const leaderboard = (scores ?? [])
       .map((user: any) => {
-        const codeforcesPoints = user.codeforces_points ?? 0;
-        const leetcodePoints = user.leetcode_points ?? 0;
-        const computedTotal = codeforcesPoints + leetcodePoints;
-
         return {
           user_id: user.user_id,
-          codeforces_points: codeforcesPoints,
-          leetcode_points: leetcodePoints,
-          total_points: computedTotal,
+          codeforces_points: user.codeforces_points ?? 0,
+          leetcode_points: user.leetcode_points ?? 0,
+          total_points: user.total_points ?? 0,
+          cf_raw: user.cf_raw ?? 0,
+          lc_raw: user.lc_raw ?? 0,
         };
       })
       .sort((a, b) => b.total_points - a.total_points)
@@ -90,6 +87,8 @@ serve(async (req) => {
       codeforces_points: user.codeforces_points,
       leetcode_points: user.leetcode_points,
       total_points: user.total_points,
+      cf_raw: user.cf_raw,
+      lc_raw: user.lc_raw,
     }));
 
     return new Response(JSON.stringify(leaderboard), {

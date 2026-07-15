@@ -174,41 +174,46 @@ serve(async (req) => {
 
     if (submissionsError) throw submissionsError;
 
-    let leetcodePoints = 0;
+    let easyCount = 0;
+    let mediumCount = 0;
+    let hardCount = 0;
 
     userSubmissions?.forEach((sub: any) => {
       const difficulty = sub.problems?.difficulty;
 
-      if (difficulty === "Easy") leetcodePoints += 100;
-      else if (difficulty === "Medium") leetcodePoints += 200;
-      else if (difficulty === "Hard") leetcodePoints += 400;
+      if (difficulty === "Easy") easyCount++;
+      else if (difficulty === "Medium") mediumCount++;
+      else if (difficulty === "Hard") hardCount++;
     });
+
+    const leetcodePoints = (easyCount * 800) + (mediumCount * 1200) + (hardCount * 1600);
 
     const { data: existingScore, error: scoreError } = await supabase
       .from("user_scores")
-      .select("codeforces_points")
+      .select("cf_raw")
       .eq("user_id", user_id)
       .maybeSingle();
 
     if (scoreError) throw scoreError;
 
-    const codeforcesPoints = existingScore?.codeforces_points || 0;
-    const finalTotal = codeforcesPoints + leetcodePoints;
+    const cfRaw = existingScore?.cf_raw || 0;
 
     const { error: upsertScoreError } = await supabase
       .from("user_scores")
       .upsert(
         {
           user_id,
-          codeforces_points: codeforcesPoints,
-          leetcode_points: leetcodePoints,
-          total_points: finalTotal,
+          cf_raw: cfRaw,
+          lc_raw: leetcodePoints,
           last_updated: new Date().toISOString(),
         },
         { onConflict: "user_id" }
       );
 
     if (upsertScoreError) throw upsertScoreError;
+
+    const { error: rpcError } = await supabase.rpc("recalculate_normalized_scores");
+    if (rpcError) throw rpcError;
 
     return new Response(
       JSON.stringify({

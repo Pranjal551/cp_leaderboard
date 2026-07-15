@@ -514,6 +514,86 @@
         .mock-lc-bar:nth-child(3) { height: 10px; }
         .mock-lc-bar:nth-child(4) { height: 6px; opacity: 0.4; }
 
+        /* ── CODER OF THE WEEK BANNER ──────────────────────── */
+        .coder-week-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(90deg, rgba(255,161,22,0.12) 0%, rgba(255,161,22,0.02) 100%);
+            border: 1px solid rgba(255, 161, 22, 0.35);
+            padding: 12px 18px;
+            margin-bottom: 16px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 16px rgba(255, 161, 22, 0.06);
+            border-radius: 4px;
+        }
+
+        .coder-week-banner::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 3px; height: 100%;
+            background: #ffa116;
+            box-shadow: 0 0 10px #ffa116;
+        }
+
+        .coder-week-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 1;
+        }
+
+        .coder-week-icon {
+            color: #ffca28;
+            font-size: 1rem;
+            animation: star-spin 3s linear infinite;
+        }
+
+        .coder-week-label {
+            font-size: 0.8rem;
+            letter-spacing: 0.18em;
+            color: #ffca28;
+            font-weight: 600;
+        }
+
+        .coder-week-user-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1;
+            margin-top: 6px;
+        }
+
+        .coder-week-crown-svg {
+            width: 18px;
+            height: 18px;
+            color: #ffca28;
+            margin-bottom: 2px;
+            animation: crown-bob 2s ease-in-out infinite;
+            filter: drop-shadow(0 0 6px rgba(255, 161, 22, 0.8));
+            user-select: none;
+        }
+
+        .coder-week-user {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: 0.05em;
+            text-shadow: 0 0 8px rgba(255,255,255,0.15);
+        }
+
+        @keyframes star-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes crown-bob {
+            0%, 100% { transform: translateY(0) rotate(-3deg); }
+            50% { transform: translateY(-5px) rotate(3deg); }
+        }
+
         /* ── TICKER ──────────────────────────────────────────── */
         .ticker-wrap {
             margin-top: 40px;
@@ -932,19 +1012,36 @@
                     </div>
                 </div>
 
+                <!-- Coder of the Week Banner -->
+                <div id="coderOfTheWeekBox" class="coder-week-banner" style="display: none;">
+                    <div class="coder-week-badge">
+                        <span class="coder-week-icon">★</span>
+                        <span class="coder-week-label">CODER OF THE WEEK</span>
+                    </div>
+                    <div class="coder-week-user-container">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="coder-week-crown-svg">
+                            <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7zm1 16h18v-2H3v2z"/>
+                        </svg>
+                        <div class="coder-week-user" id="coderOfTheWeekName">—</div>
+                    </div>
+                </div>
+
                 <!-- Live leaderboard -->
                 <table class="mock-table">
                     <thead id="lbHead">
                         <tr>
                             <th>#</th>
                             <th>HANDLE</th>
-                            <th>CF PTS</th>
-                            <th>LC PTS</th>
-                            <th style="text-align:right">TOTAL</th>
+                            <th style="text-align:right">
+                                Normalized Pts
+                                <button class="help-btn" onclick="showNormalizationHelp(event)" aria-label="Normalization info" style="background:none; border:none; padding:0; margin-left:4px; color:#00f2ea; cursor:pointer; font-size:0.8rem; display:inline-flex; align-items:center; vertical-align:middle; transition:color 0.2s;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-help-circle" style="vertical-align:middle;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                                </button>
+                            </th>
                         </tr>
                     </thead>
                     <tbody id="lbBody">
-                        <tr><td colspan="5" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// LOADING...</td></tr>
+                        <tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// LOADING...</td></tr>
                     </tbody>
                 </table>
 
@@ -1398,7 +1495,7 @@
 
             if (error || !scores || scores.length === 0) {
                 document.getElementById('lbBody').innerHTML =
-                    `<tr><td colspan="5" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO DATA YET — BE THE FIRST TO JOIN</td></tr>`;
+                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO DATA YET — BE THE FIRST TO JOIN</td></tr>`;
                 return;
             }
 
@@ -1419,16 +1516,12 @@
                 const isMe = s.user_id === myId;
                 const rank = String(i + 1).padStart(2, '0');
                 const name = s.handle || s.full_name || '—';
-                const cf   = s.codeforces_points ?? '—';
-                const lc   = s.leetcode_points   ?? '—';
                 const tot  = s.total_points       ?? '—';
                 const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
                 const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
                 return `<tr style="${rowStyle}">
                     <td class="mock-rank">${rank}${isMe ? ' ◀' : ''}</td>
                     <td style="${nameStyle}font-size:0.75rem">${name}</td>
-                    <td style="color:#f7941e">${cf}</td>
-                    <td style="color:#ffa116">${lc}</td>
                     <td style="color:#00f2ea;text-align:right">${tot}</td>
                 </tr>`;
             }).join('');
@@ -1467,6 +1560,32 @@
                         week_end: weeklyPayload.week_end || null
                     }
                     : null;
+
+                // --- FETCH CODER OF THE WEEK ---
+                try {
+                    const { data: coderProfiles, error: coderError } = await supabase
+                        .from('profiles')
+                        .select('id, full_name')
+                        .eq('coder_of_the_week', 'yes');
+
+                    const box = document.getElementById('coderOfTheWeekBox');
+                    const nameEl = document.getElementById('coderOfTheWeekName');
+
+                    if (!coderError && coderProfiles && coderProfiles.length > 0) {
+                        const coderProfile = coderProfiles[0];
+                        // Try to find handle in overallScores first (which contains all active users)
+                        const overallEntry = leaderboardPreviewState.overall?.find(s => s.user_id === coderProfile.id);
+                        const weeklyEntry = leaderboardPreviewState.weekly?.find(s => s.user_id === coderProfile.id);
+                        const displayName = overallEntry?.handle || weeklyEntry?.handle || coderProfile.full_name || 'Anonymous';
+
+                        if (nameEl) nameEl.textContent = displayName;
+                        if (box) box.style.display = 'flex';
+                    } else {
+                        if (box) box.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.error('Error fetching coder of the week:', e);
+                }
 
                 renderLeaderboardPreview();
             };
@@ -1523,15 +1642,18 @@
                 <tr>
                     <th>#</th>
                     <th>HANDLE</th>
-                    <th>CF PTS</th>
-                    <th>LC PTS</th>
-                    <th style="text-align:right">TOTAL</th>
+                    <th style="text-align:right">
+                        Normalized Pts
+                        <button class="help-btn" onclick="showNormalizationHelp(event)" aria-label="Normalization info" style="background:none; border:none; padding:0; margin-left:4px; color:#00f2ea; cursor:pointer; font-size:0.8rem; display:inline-flex; align-items:center; vertical-align:middle; transition:color 0.2s;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-help-circle" style="vertical-align:middle;"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+                        </button>
+                    </th>
                 </tr>
             `;
 
             if (!scores.length) {
                 tbody.innerHTML =
-                    `<tr><td colspan="5" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
+                    `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">// NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
                 return;
             }
 
@@ -1539,16 +1661,12 @@
                 const isMe = s.user_id === leaderboardPreviewState.myId;
                 const rank = String(i + 1).padStart(2, '0');
                 const name = s.handle || s.full_name || '-';
-                const cf = s.codeforces_points ?? '-';
-                const lc = s.leetcode_points ?? '-';
                 const tot = s.total_points ?? '-';
                 const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
                 const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
                 return `<tr style="${rowStyle}">
                     <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
                     <td style="${nameStyle}font-size:0.75rem">${name}</td>
-                    <td style="color:#f7941e">${cf}</td>
-                    <td style="color:#ffa116">${lc}</td>
                     <td style="color:#00f2ea;text-align:right">${tot}</td>
                 </tr>`;
             }).join('');
@@ -1661,7 +1779,74 @@
                 scheduleGlitch();
             }, delay);
         })();
+
+        // Score Normalization Help Modal Functions
+        window.showNormalizationHelp = function(event) {
+            if (event) event.preventDefault();
+            const modal = document.getElementById("normalizationHelpModal");
+            if (modal) {
+                modal.style.display = "flex";
+            }
+        };
+
+        window.closeNormalizationHelp = function() {
+            const modal = document.getElementById("normalizationHelpModal");
+            if (modal) {
+                modal.style.display = "none";
+            }
+        };
+        
+        // Close modal when clicking outside content
+        window.addEventListener("click", function(event) {
+            const modal = document.getElementById("normalizationHelpModal");
+            if (event.target === modal) {
+                modal.style.display = "none";
+            }
+        });
     </script>
+
+    <!-- Score Normalization Help Modal -->
+    <div id="normalizationHelpModal" class="norm-modal" style="display:none; position:fixed; z-index:10000; left:0; top:0; width:100%; height:100%; overflow:auto; background-color:rgba(0,0,0,0.85); backdrop-filter:blur(4px); align-items:center; justify-content:center;">
+      <div class="norm-modal-content" style="background:#050505; border:1px solid rgba(0,242,234,0.35); padding:28px; width:min(90vw, 550px); max-height:85vh; overflow-y:auto; font-family:'Fira Code', monospace; color:#d6ebeb; box-shadow:0 0 24px rgba(0,242,234,0.25); border-radius:4px; position:relative;">
+        <span class="norm-close" onclick="closeNormalizationHelp()" style="position:absolute; right:16px; top:12px; color:rgba(255,255,255,0.4); font-size:24px; font-weight:bold; cursor:pointer; transition:color 0.2s;">&times;</span>
+        <h3 style="color:#00f2ea; margin-top:0; font-size:1.1rem; letter-spacing:0.05em; border-bottom:1px solid rgba(0,242,234,0.15); padding-bottom:8px; display:flex; align-items:center; gap:8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+            Score Normalization
+        </h3>
+        <div style="font-size:0.75rem; line-height:1.6; margin-top:16px; font-family:'Fira Code', monospace;">
+            <p>Your total score is a weighted average of your performance on <strong>Codeforces</strong> and <strong>LeetCode</strong>, normalized across all students on the leaderboard.</p>
+            
+            <h4 style="color:#ffa116; margin:16px 0 8px 0; font-size:0.85rem;">1. Raw Scores</h4>
+            <ul style="margin: 0; padding-left: 20px;">
+                <li><strong>Codeforces (CF Raw):</strong> Sum of the actual ratings of all solved problems.</li>
+                <li><strong>LeetCode (LC Raw):</strong> <span style="color:#ffa116;">(Easy &times; 800) + (Medium &times; 1200) + (Hard &times; 1600)</span> based on solved problems.</li>
+            </ul>
+
+            <h4 style="color:#ffa116; margin:16px 0 8px 0; font-size:0.85rem;">2. Percentile Normalization (0–100)</h4>
+            <p>Your raw score is converted to a percentile rank compared to all other students on the leaderboard:</p>
+            <div style="background:rgba(255,255,255,0.04); padding:8px 12px; border-left:2px solid #00f2ea; margin-bottom:12px;">
+                <code>Norm(x) = (count of students with score &le; x) / total students &times; 100</code>
+                <br>
+                <span style="color:rgba(255,255,255,0.5); font-size:0.7rem;">* If your raw score is 0, your normalized score is automatically 0.</span>
+            </div>
+
+            <h4 style="color:#ffa116; margin:16px 0 8px 0; font-size:0.85rem;">3. Weighted Final Score (0–1000)</h4>
+            <p>The two normalized scores are combined using weights (currently 50% each) and scaled by 10 to give the final points:</p>
+            <div style="background:rgba(255,255,255,0.04); padding:8px 12px; border-left:2px solid #ffa116; margin-bottom:12px;">
+                <code>Final = (0.5 &times; CF_norm + 0.5 &times; LC_norm) &times; 10</code>
+            </div>
+
+            <h4 style="color:#00f2ea; margin:16px 0 8px 0; font-size:0.85rem; border-top:1px solid rgba(255,255,255,0.08); padding-top:8px;">Example:</h4>
+            <p>Say there are <strong>5 students</strong> on the leaderboard with the following CF raw scores: <code>[24400, 9800, 4700, 700, 0]</code>.</p>
+            <ul style="margin: 0; padding-left: 20px;">
+                <li>For a student with a score of <strong>9800</strong>: there are 4 students with a score &le; 9800 (9800, 4700, 700, and 0).</li>
+                <li>Their normalized CF score is: <span style="color:#00f2ea;">(4 / 5) &times; 100 = 80</span>.</li>
+                <li>If their normalized LC score is <strong>0</strong>, their Final Score is:<br>
+                <span style="color:#00f2ea;">(0.5 &times; 80 + 0.5 &times; 0) &times; 10 = 400</span> out of 1000.</li>
+            </ul>
+        </div>
+      </div>
+    </div>
 
 </body>
 </html>

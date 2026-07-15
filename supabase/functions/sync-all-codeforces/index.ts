@@ -94,36 +94,36 @@ serve(async () => {
 
       userSubmissions?.forEach((sub: any) => {
         const rating = sub.problems?.rating;
-        if (!rating) return;
-        if (rating < 900) totalPoints += 100;
-        else if (rating <= 1000) totalPoints += 200;
-        else totalPoints += 400;
+        if (rating) {
+          totalPoints += rating;
+        }
       });
 
       const { data: existingScore, error: scoreError } = await supabase
-      .from("user_scores")
-      .select("leetcode_points")
-      .eq("user_id", user_id)
-      .maybeSingle();
+        .from("user_scores")
+        .select("lc_raw")
+        .eq("user_id", user_id)
+        .maybeSingle();
 
-    if (scoreError) throw scoreError;
+      if (scoreError) throw scoreError;
 
-    const leetcodePoints = existingScore?.leetcode_points || 0;
-    const finalTotal = totalPoints + leetcodePoints;
+      const lcRaw = existingScore?.lc_raw || 0;
 
-    await supabase
-      .from("user_scores")
-      .upsert(
-        {
-          user_id,
-          codeforces_points: totalPoints,
-          leetcode_points: leetcodePoints,
-          total_points: finalTotal,
-          last_updated: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      );
+      await supabase
+        .from("user_scores")
+        .upsert(
+          {
+            user_id,
+            cf_raw: totalPoints,
+            lc_raw: lcRaw,
+            last_updated: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
     }
+
+    const { error: rpcError } = await supabase.rpc("recalculate_normalized_scores");
+    if (rpcError) throw rpcError;
 
     return new Response(JSON.stringify({
       syncedUsers: accounts.length

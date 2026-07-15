@@ -141,23 +141,20 @@ serve(async (req) => {
 
     userSubmissions?.forEach((sub: any) => {
       const rating = sub.problems?.rating;
-
-      if (!rating) return;
-
-      if (rating < 900) totalPoints += 100;
-      else if (rating <= 1000) totalPoints += 200;
-      else totalPoints += 400;
+      if (rating) {
+        totalPoints += rating;
+      }
     });
 
     const { data: existingScore, error: scoreError } = await supabase
       .from("user_scores")
-      .select("leetcode_points")
+      .select("lc_raw")
       .eq("user_id", user_id)
       .maybeSingle();
 
     if (scoreError) throw scoreError;
 
-    const leetcodePoints = existingScore?.leetcode_points || 0;
+    const lcRaw = existingScore?.lc_raw || 0;
 
     // 6️⃣ UPDATE user_scores table
     await supabase
@@ -165,13 +162,15 @@ serve(async (req) => {
       .upsert(
         {
           user_id,
-          codeforces_points: totalPoints,
-          leetcode_points: leetcodePoints,
-          total_points: totalPoints + leetcodePoints,
+          cf_raw: totalPoints,
+          lc_raw: lcRaw,
           last_updated: new Date().toISOString(),
         },
         { onConflict: "user_id" }
       );
+
+    const { error: rpcError } = await supabase.rpc("recalculate_normalized_scores");
+    if (rpcError) throw rpcError;
 
     return new Response(
       JSON.stringify({

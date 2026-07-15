@@ -130,14 +130,10 @@ serve(async (req) => {
     });
 
     (scores ?? []).forEach((score: any) => {
-      const codeforcesPoints = score.codeforces_points ?? 0;
-      const leetcodePoints = score.leetcode_points ?? 0;
-      const totalPoints = score.total_points ?? codeforcesPoints + leetcodePoints;
-
       scoreMap[score.user_id] = {
-        codeforces_points: codeforcesPoints,
-        leetcode_points: leetcodePoints,
-        total_points: totalPoints,
+        codeforces_points: score.codeforces_points ?? 0,
+        leetcode_points: score.leetcode_points ?? 0,
+        total_points: score.total_points ?? 0,
       };
     });
 
