@@ -371,6 +371,108 @@
                 );
             }
         }
+        /* ── EDIT PROFILE MODAL ─────────────────────────────── */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .modal-box {
+            background: #0d0d0d;
+            border: 1px solid rgba(0,242,234,0.25);
+            padding: 36px 32px;
+            width: min(440px, 92vw);
+            box-shadow: 0 0 60px rgba(0,242,234,0.08);
+            transform: translateY(16px);
+            transition: transform 0.25s;
+        }
+        .modal-overlay.open .modal-box {
+            transform: translateY(0);
+        }
+        .modal-title {
+            color: #00f2ea;
+            font-size: 0.85rem;
+            letter-spacing: 0.18em;
+            margin-bottom: 6px;
+        }
+        .modal-sub {
+            color: rgba(255,255,255,0.3);
+            font-size: 0.68rem;
+            letter-spacing: 0.05em;
+            margin-bottom: 28px;
+        }
+        .modal-field {
+            margin-bottom: 20px;
+        }
+        .modal-label {
+            font-size: 0.6rem;
+            letter-spacing: 0.15em;
+            color: rgba(255,255,255,0.35);
+            margin-bottom: 6px;
+            display: block;
+        }
+        .modal-input,
+        .modal-select {
+            width: 100%;
+            background: none;
+            border: none;
+            border-bottom: 1px solid rgba(0,242,234,0.25);
+            color: white;
+            font-family: "Fira Code", monospace;
+            font-size: 0.82rem;
+            padding: 8px 0;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .modal-input:focus,
+        .modal-select:focus {
+            border-color: rgba(0,242,234,0.7);
+        }
+        .modal-select option { background: #0d0d0d; color: white; }
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+        .modal-btn {
+            flex: 1;
+            background: none;
+            border: 1px solid rgba(0,242,234,0.3);
+            color: #00f2ea;
+            font-family: "Fira Code", monospace;
+            font-size: 0.72rem;
+            letter-spacing: 0.1em;
+            padding: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .modal-btn:hover { background: rgba(0,242,234,0.08); }
+        .modal-btn.cancel {
+            border-color: rgba(255,255,255,0.12);
+            color: rgba(255,255,255,0.4);
+        }
+        .modal-btn.cancel:hover { background: rgba(255,255,255,0.04); }
+        .modal-msg {
+            font-size: 0.65rem;
+            letter-spacing: 0.06em;
+            margin-top: 12px;
+            min-height: 18px;
+            text-align: center;
+        }
+        .modal-msg.ok  { color: #00f2ea; }
+        .modal-msg.err { color: #ff4d6d; }
     </style>
 </head>
 
@@ -440,7 +542,49 @@
             </div>
         </div>
 
-        <button class="add-platform-btn" onclick="window.location.href='./setup.html'">+ ADD PLATFORM</button>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:0;">
+            <button class="add-platform-btn" style="margin-top:0;" onclick="window.location.href='./setup.html'">+ ADD PLATFORM</button>
+            <button class="add-platform-btn" style="margin-top:0;color:rgba(200,224,224,0.8);border-color:rgba(200,224,224,0.2);" onclick="openEditProfile()">✎ EDIT PROFILE</button>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div class="modal-overlay" id="editProfileModal" onclick="closeEditProfile(event)">
+        <div class="modal-box">
+            <div class="modal-title">EDIT_PROFILE</div>
+            <div class="modal-sub">Update your display name, semester, or SAP ID.</div>
+
+            <div class="modal-field">
+                <label class="modal-label" for="epName">DISPLAY_NAME</label>
+                <input class="modal-input" id="epName" type="text" placeholder="e.g. John Doe" autocomplete="off">
+            </div>
+
+            <div class="modal-field">
+                <label class="modal-label" for="epSemester">SEMESTER</label>
+                <select class="modal-select" id="epSemester">
+                    <option value="">— Select —</option>
+                    <option value="1">SEM 1</option>
+                    <option value="2">SEM 2</option>
+                    <option value="3">SEM 3</option>
+                    <option value="4">SEM 4</option>
+                    <option value="5">SEM 5</option>
+                    <option value="6">SEM 6</option>
+                    <option value="7">SEM 7</option>
+                    <option value="8">SEM 8</option>
+                </select>
+            </div>
+
+            <div class="modal-field">
+                <label class="modal-label" for="epSapId">SAP_ID</label>
+                <input class="modal-input" id="epSapId" type="text" placeholder="e.g. 70000000000" autocomplete="off">
+            </div>
+
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeEditProfile()">CANCEL</button>
+                <button class="modal-btn" id="epSaveBtn" onclick="saveEditProfile()">SAVE</button>
+            </div>
+            <div class="modal-msg" id="epMsg"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -577,6 +721,74 @@
         }
 
         init();
+
+        /* ── Edit Profile modal ──────────────────────────────── */
+        async function openEditProfile() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data: p } = await supabase
+                .from('profiles')
+                .select('full_name, semester, sap_id')
+                .eq('id', user.id)
+                .maybeSingle();
+
+            document.getElementById('epName').value = p?.full_name || '';
+            document.getElementById('epSemester').value = p?.semester ?? '';
+            document.getElementById('epSapId').value = p?.sap_id || '';
+            document.getElementById('epMsg').textContent = '';
+            document.getElementById('epMsg').className = 'modal-msg';
+            document.getElementById('editProfileModal').classList.add('open');
+        }
+
+        function closeEditProfile(e) {
+            if (e && e.target !== document.getElementById('editProfileModal')) return;
+            document.getElementById('editProfileModal').classList.remove('open');
+        }
+
+        async function saveEditProfile() {
+            const btn = document.getElementById('epSaveBtn');
+            const msgEl = document.getElementById('epMsg');
+            const name = document.getElementById('epName').value.trim();
+            const sem = parseInt(document.getElementById('epSemester').value, 10);
+            const sap = document.getElementById('epSapId').value.trim();
+
+            if (!name) {
+                msgEl.textContent = 'Display name cannot be empty.';
+                msgEl.className = 'modal-msg err';
+                return;
+            }
+
+            btn.textContent = 'SAVING...';
+            btn.disabled = true;
+
+            const { data: { user } } = await supabase.auth.getUser();
+            const { error } = await supabase
+                .from('profiles')
+                .upsert({
+                    id: user.id,
+                    full_name: name,
+                    semester: Number.isNaN(sem) ? null : sem,
+                    sap_id: sap || null
+                }, { onConflict: 'id' });
+
+            btn.textContent = 'SAVE';
+            btn.disabled = false;
+
+            if (error) {
+                msgEl.textContent = 'Error: ' + error.message;
+                msgEl.className = 'modal-msg err';
+                return;
+            }
+
+            // Refresh displayed values
+            document.getElementById('semesterValue').textContent = Number.isNaN(sem) ? '-' : `SEM ${sem}`;
+            document.getElementById('sapIdValue').textContent = sap || '-';
+
+            msgEl.textContent = 'Profile updated!';
+            msgEl.className = 'modal-msg ok';
+            setTimeout(() => document.getElementById('editProfileModal').classList.remove('open'), 1200);
+        }
     </script>
 
 </body>
