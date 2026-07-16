@@ -575,6 +575,57 @@
 
         .mock-rank { color: var(--cyan); font-size: 0.78rem; }
 
+        /* ── PAGINATION ──────────────────────────────────────── */
+        .lb-pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 12px 8px 4px;
+            flex-wrap: wrap;
+        }
+
+        .lb-page-btn {
+            background: rgba(0,242,234,0.04);
+            border: 1px solid rgba(0,242,234,0.16);
+            color: rgba(206,228,228,0.7);
+            font-family: "Fira Code", monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.1em;
+            padding: 5px 10px;
+            cursor: pointer;
+            transition: background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        .lb-page-btn:hover:not(:disabled) {
+            background: rgba(0,242,234,0.12);
+            border-color: rgba(0,242,234,0.4);
+            color: var(--cyan);
+            box-shadow: 0 0 8px rgba(0,242,234,0.15);
+        }
+
+        .lb-page-btn.active {
+            background: rgba(0,242,234,0.18);
+            border-color: rgba(0,242,234,0.55);
+            color: var(--cyan);
+            box-shadow: 0 0 10px rgba(0,242,234,0.18);
+            cursor: default;
+        }
+
+        .lb-page-btn:disabled {
+            opacity: 0.28;
+            cursor: not-allowed;
+        }
+
+        .lb-page-info {
+            font-size: 0.58rem;
+            color: rgba(206,228,228,0.4);
+            letter-spacing: 0.1em;
+            padding: 0 4px;
+        }
+
         .mock-handle {
             display: inline-block;
             background: rgba(255,255,255,0.12);
@@ -1124,6 +1175,9 @@
                     </tbody>
                 </table>
 
+                <!-- Pagination controls -->
+                <div id="lbPagination" class="lb-pagination"></div>
+
             </div>
         </div>
     </div>
@@ -1571,12 +1625,15 @@
 
 
 
+        const ITEMS_PER_PAGE = 10;
+
         const leaderboardPreviewState = {
             activeMode: 'overall',
             overall: [],
             weekly: [],
             weeklyMeta: null,
-            myId: null
+            myId: null,
+            currentPage: 1
         };
 
         async function loadLeaderboardPreview() {
@@ -1732,6 +1789,85 @@
             podiumEl.innerHTML = secondHTML + firstHTML + thirdHTML;
         }
 
+        /* ── SHARED PAGINATION RENDERER ──────────────────────── */
+        function renderPaginationControls(totalItems) {
+            const paginationEl = document.getElementById('lbPagination');
+            if (!paginationEl) return;
+
+            const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+            if (totalPages <= 1) {
+                paginationEl.innerHTML = '';
+                return;
+            }
+
+            const page = leaderboardPreviewState.currentPage;
+            let html = '';
+
+            // Prev button
+            html += `<button class="lb-page-btn" id="lbPrevBtn" ${page === 1 ? 'disabled' : ''} onclick="lbChangePage(${page - 1})">&#8592; PREV</button>`;
+
+            // Page number buttons (show at most 5 around current)
+            const maxVisible = 5;
+            let startPage = Math.max(1, page - Math.floor(maxVisible / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+            if (endPage - startPage < maxVisible - 1) {
+                startPage = Math.max(1, endPage - maxVisible + 1);
+            }
+
+            if (startPage > 1) {
+                html += `<button class="lb-page-btn" onclick="lbChangePage(1)">01</button>`;
+                if (startPage > 2) html += `<span class="lb-page-info">…</span>`;
+            }
+
+            for (let p = startPage; p <= endPage; p++) {
+                const label = String(p).padStart(2, '0');
+                html += `<button class="lb-page-btn${p === page ? ' active' : ''}" onclick="lbChangePage(${p})">${label}</button>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += `<span class="lb-page-info">…</span>`;
+                html += `<button class="lb-page-btn" onclick="lbChangePage(${totalPages})">${String(totalPages).padStart(2, '0')}</button>`;
+            }
+
+            // Next button
+            html += `<button class="lb-page-btn" id="lbNextBtn" ${page === totalPages ? 'disabled' : ''} onclick="lbChangePage(${page + 1})">NEXT &#8594;</button>`;
+
+            // Page info
+            html += `<span class="lb-page-info">[${page}/${totalPages}]</span>`;
+
+            paginationEl.innerHTML = html;
+        }
+
+        window.lbChangePage = function(page) {
+            leaderboardPreviewState.currentPage = page;
+            renderLeaderboardPreview();
+            // Scroll to top of the mock browser smoothly
+            const mockWrap = document.querySelector('.mock-wrap');
+            if (mockWrap) mockWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
+
+        /* ── SHARED ROW BUILDER ──────────────────────────────── */
+        function buildRows(sortedScores, valueGetter, colStyle) {
+            const page = leaderboardPreviewState.currentPage;
+            const start = (page - 1) * ITEMS_PER_PAGE;
+            const pageSlice = sortedScores.slice(start, start + ITEMS_PER_PAGE);
+
+            return pageSlice.map((s, localIdx) => {
+                const globalIdx = start + localIdx;
+                const isMe = s.user_id === leaderboardPreviewState.myId;
+                const rank = String(globalIdx + 1).padStart(2, '0');
+                const name = s.handle || s.full_name || '-';
+                const val = valueGetter(s);
+                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
+                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
+                return `<tr style="${rowStyle}">
+                    <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
+                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
+                    <td style="${colStyle}text-align:right">${val}</td>
+                </tr>`;
+            }).join('');
+        }
+
         function renderLeetcodePreview(thead, tbody, scores) {
             const sorted = [...scores].sort((a, b) => (b.lc_raw || 0) - (a.lc_raw || 0));
             const modeCopy = document.getElementById('mockModeCopy');
@@ -1751,22 +1887,12 @@
             if (!sorted.length) {
                 tbody.innerHTML =
                     `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
+                renderPaginationControls(0);
                 return;
             }
 
-            tbody.innerHTML = sorted.map((s, i) => {
-                const isMe = s.user_id === leaderboardPreviewState.myId;
-                const rank = String(i + 1).padStart(2, '0');
-                const name = s.handle || s.full_name || '-';
-                const lcPoints = s.lc_raw ?? 0;
-                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
-                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
-                return `<tr style="${rowStyle}">
-                    <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
-                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
-                    <td style="color:#00f2ea;text-align:right">${lcPoints}</td>
-                </tr>`;
-            }).join('');
+            tbody.innerHTML = buildRows(sorted, s => s.lc_raw ?? 0, 'color:#00f2ea;');
+            renderPaginationControls(sorted.length);
         }
 
         function renderCodeforcesPreview(thead, tbody, scores) {
@@ -1788,22 +1914,12 @@
             if (!sorted.length) {
                 tbody.innerHTML =
                     `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
+                renderPaginationControls(0);
                 return;
             }
 
-            tbody.innerHTML = sorted.map((s, i) => {
-                const isMe = s.user_id === leaderboardPreviewState.myId;
-                const rank = String(i + 1).padStart(2, '0');
-                const name = s.handle || s.full_name || '-';
-                const cfPoints = s.cf_raw ?? 0;
-                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
-                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
-                return `<tr style="${rowStyle}">
-                    <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
-                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
-                    <td style="color:#00f2ea;text-align:right">${cfPoints}</td>
-                </tr>`;
-            }).join('');
+            tbody.innerHTML = buildRows(sorted, s => s.cf_raw ?? 0, 'color:#00f2ea;');
+            renderPaginationControls(sorted.length);
         }
 
         function renderOverallPreview(thead, tbody, scores) {
@@ -1829,22 +1945,12 @@
             if (!scores.length) {
                 tbody.innerHTML =
                     `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">NO DATA YET - BE THE FIRST TO JOIN</td></tr>`;
+                renderPaginationControls(0);
                 return;
             }
 
-            tbody.innerHTML = scores.map((s, i) => {
-                const isMe = s.user_id === leaderboardPreviewState.myId;
-                const rank = String(i + 1).padStart(2, '0');
-                const name = s.handle || s.full_name || '-';
-                const tot = s.total_points ?? '-';
-                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
-                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
-                return `<tr style="${rowStyle}">
-                    <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
-                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
-                    <td style="color:#00f2ea;text-align:right">${tot}</td>
-                </tr>`;
-            }).join('');
+            tbody.innerHTML = buildRows(scores, s => s.total_points ?? '-', 'color:#00f2ea;');
+            renderPaginationControls(scores.length);
         }
 
         function renderWeeklyPreview(thead, tbody, scores) {
@@ -1865,22 +1971,12 @@
             if (!scores.length) {
                 tbody.innerHTML =
                     `<tr><td colspan="3" style="color:rgba(255,255,255,0.2);font-size:0.65rem;padding:12px 8px">NO WEEKLY DATA YET</td></tr>`;
+                renderPaginationControls(0);
                 return;
             }
 
-            tbody.innerHTML = scores.map((s, i) => {
-                const isMe = s.user_id === leaderboardPreviewState.myId;
-                const rank = String(i + 1).padStart(2, '0');
-                const name = s.handle || s.full_name || '-';
-                const points = s.total_points ?? '-';
-                const rowStyle = isMe ? 'background:rgba(0,242,234,0.06);' : '';
-                const nameStyle = isMe ? 'color:#00f2ea;' : 'color:rgba(255,255,255,0.8);';
-                return `<tr style="${rowStyle}">
-                    <td class="mock-rank">${rank}${isMe ? ' *' : ''}</td>
-                    <td style="${nameStyle}font-size:0.75rem">${name}</td>
-                    <td style="color:#00f2ea;text-align:right">${points}</td>
-                </tr>`;
-            }).join('');
+            tbody.innerHTML = buildRows(scores, s => s.total_points ?? '-', 'color:#00f2ea;');
+            renderPaginationControls(scores.length);
         }
 
         function formatWeekRange(start, end) {
@@ -1924,21 +2020,25 @@
 
         document.getElementById('overallToggle').addEventListener('click', () => {
             leaderboardPreviewState.activeMode = 'overall';
+            leaderboardPreviewState.currentPage = 1;
             renderLeaderboardPreview();
         });
 
         document.getElementById('weeklyToggle').addEventListener('click', () => {
             leaderboardPreviewState.activeMode = 'weekly';
+            leaderboardPreviewState.currentPage = 1;
             renderLeaderboardPreview();
         });
 
         document.getElementById('leetcodeToggle').addEventListener('click', () => {
             leaderboardPreviewState.activeMode = 'leetcode';
+            leaderboardPreviewState.currentPage = 1;
             renderLeaderboardPreview();
         });
 
         document.getElementById('codeforcesToggle').addEventListener('click', () => {
             leaderboardPreviewState.activeMode = 'codeforces';
+            leaderboardPreviewState.currentPage = 1;
             renderLeaderboardPreview();
         });
 
